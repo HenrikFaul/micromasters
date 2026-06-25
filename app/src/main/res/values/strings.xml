@@ -111,4 +111,12 @@
     <string name="shop_vip_desc">Dupla termelés és napi bónusz</string>
     <string name="shop_skin">Arany egységek</string>
     <string name="shop_skin_desc">Csillogó arany kinézet az egységeknek</string>
+
+    <!-- Daily quests -->
+    <string name="quests_title">Napi feladatok</string>
+    <string name="quests_nav">Feladatok</string>
+    <string name="quest_collect">Gyűjts 1000 érmét</string>
+    <string name="quest_upgrade">Végezz 3 fejlesztést</string>
+    <string name="quest_conquer">Hódíts meg 1 területet</string>
+    <string name="quest_progress_fmt">%1$s / %2$s</string>
 </resources>

@@ -51,6 +51,8 @@ class WorldDef(
     val nodes: Array<String>
 )
 
+class QuestDef(val nameRes: Int, val emoji: String, val target: Long, val rewardGems: Int)
+
 object Defs {
     const val TERRITORIES = 10
 
@@ -124,5 +126,11 @@ object Defs {
         DailyReward(2500, false),
         DailyReward(200, true),
         DailyReward(5000, true)
+    )
+
+    val QUESTS = listOf(
+        QuestDef(R.string.quest_collect, "💰", 1000, 10),
+        QuestDef(R.string.quest_upgrade, "⬆️", 3, 8),
+        QuestDef(R.string.quest_conquer, "🚩", 1, 12)
     )
 }

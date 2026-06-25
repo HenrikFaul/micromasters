@@ -34,6 +34,13 @@ class GameState {
     var created: Long = 0L
     var skinGold: Boolean = false
 
+    // Daily quests (counters reset per local day via rolloverDaily).
+    var questDay: Long = -1L
+    var qCollected: Long = 0L
+    var qUpgrades: Int = 0
+    var qConquered: Int = 0
+    val qClaimed = BooleanArray(3)
+
     fun world(id: String): WorldState = worlds.getValue(id)
     fun active(): WorldState = world(activeWorld)
 
@@ -145,6 +152,7 @@ class GameState {
         if (amount > 0) {
             coins += amount
             ws.pending -= amount
+            qCollected += amount
         }
         // Lab gems are harvested together with coins.
         val g = floor(ws.gemPending).toLong()
@@ -161,6 +169,7 @@ class GameState {
         if (coins < cost) return false
         coins -= cost
         ws.unitLevels[i] += 1
+        qUpgrades += 1
         return true
     }
 
@@ -170,6 +179,7 @@ class GameState {
         if (coins < cost) return false
         coins -= cost
         ws.buildingLevels[i] += 1
+        qUpgrades += 1
         return true
     }
 
@@ -183,6 +193,7 @@ class GameState {
         if (coins < cost) return ConquerResult(false, false, 0)
         coins -= cost
         ws.territories += 1
+        qConquered += 1
         var cleared = false
         var reward = 0
         if (ws.territories >= Defs.TERRITORIES && !ws.clearRewardClaimed) {
@@ -260,6 +271,36 @@ class GameState {
         return reward
     }
 
+    // ---- daily quests ---------------------------------------------------
+
+    fun rolloverDaily(now: Long) {
+        val today = epochDay(now)
+        if (questDay != today) {
+            questDay = today
+            qCollected = 0L
+            qUpgrades = 0
+            qConquered = 0
+            for (i in qClaimed.indices) qClaimed[i] = false
+        }
+    }
+
+    fun questProgress(i: Int): Long = when (i) {
+        0 -> qCollected
+        1 -> qUpgrades.toLong()
+        else -> qConquered.toLong()
+    }
+
+    fun questClaimable(i: Int): Boolean = !qClaimed[i] && questProgress(i) >= Defs.QUESTS[i].target
+
+    /** Claims quest i if eligible; returns gems granted (0 if not). */
+    fun claimQuest(i: Int): Int {
+        if (!questClaimable(i)) return 0
+        qClaimed[i] = true
+        val reward = Defs.QUESTS[i].rewardGems
+        gems += reward
+        return reward
+    }
+
     // ---- persistence ----------------------------------------------------
 
     private fun safe(d: Double): Double = if (d.isFinite()) d else 0.0
@@ -277,6 +318,11 @@ class GameState {
         o.put("lastSeen", lastSeen)
         o.put("created", created)
         o.put("skinGold", skinGold)
+        o.put("questDay", questDay)
+        o.put("qCollected", qCollected)
+        o.put("qUpgrades", qUpgrades)
+        o.put("qConquered", qConquered)
+        o.put("qClaimed", JSONArray(listOf(qClaimed[0], qClaimed[1], qClaimed[2])))
         val ws = JSONObject()
         for ((id, w) in worlds) {
             val wo = JSONObject()
@@ -328,6 +374,13 @@ class GameState {
             s.lastSeen = o.optLong("lastSeen", now)
             s.created = o.optLong("created", now)
             s.skinGold = o.optBoolean("skinGold", false)
+            s.questDay = o.optLong("questDay", -1L)
+            s.qCollected = o.optLong("qCollected", 0L).coerceAtLeast(0L)
+            s.qUpgrades = o.optInt("qUpgrades", 0).coerceAtLeast(0)
+            s.qConquered = o.optInt("qConquered", 0).coerceAtLeast(0)
+            o.optJSONArray("qClaimed")?.let { qc ->
+                for (i in 0 until min(qc.length(), s.qClaimed.size)) s.qClaimed[i] = qc.optBoolean(i, false)
+            }
             val ws = o.optJSONObject("worlds")
             for (def in Defs.WORLDS) {
                 val w = WorldState(unlocked = def.unlockedByDefault)

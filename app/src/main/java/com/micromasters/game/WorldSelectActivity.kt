@@ -23,6 +23,7 @@ class WorldSelectActivity : AppCompatActivity() {
         b.btnShop.setOnClickListener { Dialogs.showShop(this) { refresh() } }
         b.eventBanner.setOnClickListener { Dialogs.showShop(this) { refresh() } }
         b.navWorlds.setOnClickListener { refresh() }
+        b.navQuests.setOnClickListener { Dialogs.showQuests(this) { refresh() } }
         b.navFriends.setOnClickListener { Dialogs.showLeaderboard(this) }
         b.navSettings.setOnClickListener { Dialogs.showSettings(this) { refresh() } }
     }
@@ -44,6 +45,7 @@ class WorldSelectActivity : AppCompatActivity() {
         b.coinsText.text = Format.short(s.coins)
         b.gemsText.text = Format.short(s.gems)
         val now = System.currentTimeMillis()
+        s.rolloverDaily(now)
         val tz = java.util.TimeZone.getDefault()
         val msToMidnight = 86_400_000L - (now + tz.getOffset(now)) % 86_400_000L
         b.eventText.text = getString(R.string.event_fmt, Format.duration(msToMidnight))

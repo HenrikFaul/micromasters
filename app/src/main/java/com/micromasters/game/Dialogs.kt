@@ -259,6 +259,93 @@ object Dialogs {
         dialog.show()
     }
 
+    // ------------------------------------------------------------------ quests
+
+    fun showQuests(act: Activity, onChange: () -> Unit) {
+        val s = Game.get(act)
+        s.rolloverDaily(System.currentTimeMillis())
+        val pad = dp(act, 18)
+        val root = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_card)
+            setPadding(pad, pad, pad, pad)
+        }
+        root.addView(TextView(act).apply {
+            text = act.getString(R.string.quests_title)
+            setTextColor(WHITE)
+            textSize = 20f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        })
+        val listView = LinearLayout(act).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(listView)
+
+        val dialog = AlertDialog.Builder(act).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        fun rebuild() {
+            listView.removeAllViews()
+            for (i in Defs.QUESTS.indices) {
+                val q = Defs.QUESTS[i]
+                val r = ItemUpgradeBinding.inflate(act.layoutInflater, listView, false)
+                r.upEmoji.text = q.emoji
+                r.upName.text = act.getString(q.nameRes)
+                r.upSub.text = act.getString(
+                    R.string.quest_progress_fmt,
+                    Format.short(s.questProgress(i).coerceAtMost(q.target)),
+                    Format.short(q.target)
+                )
+                r.upBtn.text = "+" + q.rewardGems
+                r.upBtn.setIconResource(R.drawable.ic_gem)
+                when {
+                    s.qClaimed[i] -> {
+                        r.upBtn.text = act.getString(R.string.daily_done)
+                        r.upBtn.icon = null
+                        r.upBtn.isEnabled = false
+                        r.upBtn.backgroundTintList = csl(act, R.color.panel_light)
+                        r.upBtn.setTextColor(DIM)
+                    }
+                    s.questClaimable(i) -> {
+                        r.upBtn.isEnabled = true
+                        r.upBtn.backgroundTintList = csl(act, R.color.gold)
+                        r.upBtn.setTextColor(DARK_GOLD)
+                        r.upBtn.setOnClickListener {
+                            val g = s.claimQuest(i)
+                            if (g > 0) {
+                                it.pop()
+                                Game.save(act)
+                                onChange()
+                                Toast.makeText(act, "+$g 💎", Toast.LENGTH_SHORT).show()
+                                rebuild()
+                            }
+                        }
+                    }
+                    else -> {
+                        r.upBtn.isEnabled = false
+                        r.upBtn.backgroundTintList = csl(act, R.color.gold)
+                        r.upBtn.setTextColor(DARK_GOLD)
+                    }
+                }
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.topMargin = dp(act, 12)
+                r.root.layoutParams = lp
+                listView.addView(r.root)
+            }
+        }
+        rebuild()
+
+        root.addView(android.widget.Button(act).apply {
+            text = act.getString(R.string.close)
+            setBackgroundColor(0x00000000)
+            setTextColor(DIM)
+            setPadding(0, dp(act, 6), 0, 0)
+            setOnClickListener { dialog.dismiss() }
+        })
+        dialog.show()
+    }
+
     // -------------------------------------------------------------------- shop
 
     fun showShop(act: Activity, onChange: () -> Unit) {
