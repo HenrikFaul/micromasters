@@ -451,5 +451,106 @@ readable one-handed on a small dark screen; data-driven content; crash-safe pers
 
 ---
 
+---
+
+# Part B — Backend, LiveOps, State Machine, Analytics & Release
+
+Covers the full-spec dimensions beyond the single-player core (backend §15, architecture §16,
+data model §17, state machine §18, analytics §20, build delivery §22, expansion §23). The
+client stays **offline-first**; everything here is **additive** and never gates core play.
+
+## B1. Client/Server split (offline-first, server-additive)
+| Concern | Authority | Rationale |
+|---|---|---|
+| Core idle economy (coins/essence/upgrades/idle) | **Client** | Solo, no real-money risk; must work fully offline ✅ |
+| Cloud save / cross-device | Server (last-writer + merge guard) | Convenience, not required |
+| Leaderboards & event scores | **Server** | Anti-cheat, fairness |
+| IAP entitlements | **Server** (receipt validation) | Revenue integrity |
+| Daily/event time windows | **Server clock when online**, device clock offline | Anti time-manipulation |
+
+Sync rule: local JSON is truth offline; on login, reconcile by server-stamped `saveVersion`
+(monotonic). On conflict, **preserve the most valuable non-duplicated outcome** (max of each
+monotonic counter; never sum claimable rewards) and show a one-tap conflict resolver — never
+silently overwrite.
+
+## B2. Backend services (lightweight; serverless is enough)
+Auth/Profile · Cloud Save · Economy Validation · Daily Rewards · Remote Config · Leaderboards ·
+Events · IAP Validation · Analytics Ingest. All endpoints **stateless + idempotent**. (This
+environment has **Supabase** available — Postgres + Auth + Edge Functions covers all of the
+above as a thin REST/RPC layer; not yet wired, deliberately, to keep the demo offline & keyless.)
+
+## B3. Anti-abuse / economy validation
+- **Idempotency keys:** every reward/purchase claim carries a client UUID; server dedups →
+  no double-grant on retry, app-close, or network loss. (Client mirrors this with a single
+  `grant()` choke-point — §11.)
+- **Rate bounds:** server rejects any delta exceeding `maxRate · elapsed · maxMult` for the
+  account → caps injection/time cheats.
+- **Server-time windows** for daily/event; client `dt = max(0, now−lastTick)` already prevents
+  negative/again income from clock rollback ✅.
+- **Receipt validation** via Play Billing before granting entitlements.
+
+## B4. Remote config (live tuning, A/B)
+Config-driven values: reward rates, `upgradeCost` base/growth, offline cap & efficiency, daily
+table, event schedule, ad-frequency caps, feature flags. Fetched on launch (cached); **defaults
+are the baked-in `Defs`** so the game is fully tunable yet offline-safe. This is the same data
+layer as §12 — remote config simply overrides `Defs`.
+
+## B5. Analytics — events → KPIs
+| Event | Key props | Feeds KPI |
+|---|---|---|
+| `session_start/end` | duration | session length, DAU |
+| `app_open` | dayN, sinceInstall | **D1/D7 retention** |
+| `collect` | world, amount | engagement cadence |
+| `upgrade` | type,id,level,cost | upgrade frequency, sink balance |
+| `zone_clear` / `world_unlock` | world,zone | unlock conversion, progression rate |
+| `quest_claim` | id,reward | quest funnel |
+| `ad_watch` | placement,reward | ad uptake |
+| `iap_purchase` | sku,price | purchase funnel/ARPU |
+| `offline_claim` | seconds,amount | idle value |
+| `crash` | trace hash | stability |
+Drop-off = last event before churn. KPIs drive remote-config experiments.
+
+## B6. Game state machine (entry/exit, no overlap, no double-claim)
+| State | Entry | Exit | Notes |
+|---|---|---|---|
+| `Boot` | install handlers (CrashActivity) | → Loading | ✅ MicroApp |
+| `Loading` | `Game.get()` migrate save | → MainHub | ✅ |
+| `MainHub` | refresh resources/worlds/event | → WorldView/Shop/Quests/Settings | ✅ WorldSelect |
+| `WorldView` | start render loop + ticker | pause loop, save | ✅ GameActivity |
+| `UpgradeMenu` | snapshot active world | apply+persist | ✅ sheet |
+| `WorkerMenu` | (folded into Units tab v1) | — | 🟡 |
+| `QuestMenu` | load active quests | claim→grant | ⬜ |
+| `RewardClaim` | show reward | `grant()` once (idempotent) | 🟡 |
+| `OfflineSummary` | compute idle, lock claim | single CLAIM → grant | 🟡 (toast) |
+| `Shop` | list offers | purchase→validate | ✅ (simulated) |
+| `Settings` | — | persist prefs | ✅ |
+| `EventScreen` | load event state | claim/shop | ⬜ |
+**Invariants:** reward grants are valid only in `RewardClaim`/`OfflineSummary`; no upgrade while
+a sync is in-flight (queue then apply); transitions are explicit (Activity lifecycle + dialog
+show/dismiss) so UI never overlaps or double-claims.
+
+## B7. Expanded data model & migration
+| Entity | Kind | Where |
+|---|---|---|
+| `WorldDefinition`,`ZoneDefinition`,`ResourceType`,`WorkerType`,`BuildingType`,`UpgradePath`,`Quest`,`EventDef` | **static def** | `Defs`/remote config |
+| `WorkerInstance`,`BuildingInstance`,`DailyRewardState`,`PrestigeState`,`EventState`,`WorldState` | **mutable save** | `GameState` JSON |
+| `UserProfile`,`PurchaseRecord` | **server record** | backend |
+Save carries `schema` (✅), forward-only `migrate(vN→vN+1)`, **reject `schema>current`** (✅).
+Every entity fully serialized & versioned (idle games live long → schema evolves).
+
+## B8. Build & Release (Android-first — fulfils §22)
+- **Toolchain:** Gradle 8.9 (wrapper committed) · AGP 8.6.1 · Kotlin 1.9.24 · minSdk 26 /
+  target 34 · JDK 17.
+- **Reproducible build:** GitHub Actions `assembleDebug` on every push → `MicroMasters.apk`
+  artifact + rolling prerelease ✅ (official Google SDK on the runner; this sandbox can't reach
+  Google hosts, so CI is the canonical build path — see README).
+- **Release config (store-ready, planned):** `release` buildType with R8/minify, a generated
+  **upload keystore** + `signingConfigs` (keystore + passwords as CI secrets), `versionCode`
+  bump, `assembleRelease`/`bundleRelease` (AAB for Play). See `RELEASE.md` for the checklist.
+- **Asset pipeline:** vector-only today (no raster) → trivial; future sprite/audio import via
+  `res/`/`assets/`.
+
+---
+
 *This GDD is versioned with the code. When a number here changes, change the data (§12), not
 the logic; when a system here is marked ⬜ and then built, flip it to ✅ in the same PR.*
