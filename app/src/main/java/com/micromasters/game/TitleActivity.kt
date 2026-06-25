@@ -6,6 +6,8 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.micromasters.game.databinding.ActivityTitleBinding
+import java.io.PrintWriter
+import java.io.StringWriter
 
 class TitleActivity : AppCompatActivity() {
 
@@ -14,34 +16,39 @@ class TitleActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        b = ActivityTitleBinding.inflate(layoutInflater)
-        setContentView(b.root)
+        if (showPendingCrash()) return
+        try {
+            b = ActivityTitleBinding.inflate(layoutInflater)
+            setContentView(b.root)
 
-        // Warm up / migrate the save so first gameplay frame is instant.
-        Game.get(this)
+            // Warm up / migrate the save so the first gameplay frame is instant.
+            Game.get(this)
 
-        b.btnPlay.setOnClickListener {
-            startActivity(Intent(this, WorldSelectActivity::class.java))
-        }
-        b.btnLogin.setOnClickListener {
-            Toast.makeText(this, getString(R.string.title_login) + " ✓", Toast.LENGTH_SHORT).show()
-        }
-        b.titleSettings.setOnClickListener {
-            Dialogs.showSettings(this) { }
+            b.btnPlay.setOnClickListener {
+                startActivity(Intent(this, WorldSelectActivity::class.java))
+            }
+            b.btnLogin.setOnClickListener {
+                Toast.makeText(this, getString(R.string.title_login) + " ✓", Toast.LENGTH_SHORT).show()
+            }
+            b.titleSettings.setOnClickListener {
+                Dialogs.showSettings(this) { }
+            }
+        } catch (e: Throwable) {
+            crashTo(e)
         }
     }
 
     override fun onResume() {
         super.onResume()
+        if (!::b.isInitialized) return
         bobbing = true
         bobPlanet(true)
     }
 
     override fun onPause() {
         super.onPause()
-        // Stop the self-recursive animation so it can't run after navigation or leak the Activity.
         bobbing = false
-        b.planet.animate().cancel()
+        if (::b.isInitialized) b.planet.animate().cancel()
     }
 
     private fun bobPlanet(up: Boolean) {
@@ -52,5 +59,22 @@ class TitleActivity : AppCompatActivity() {
             .setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction { bobPlanet(!up) }
             .start()
+    }
+
+    /** If a crash was recorded, show it instead of risking another crash loop. */
+    private fun showPendingCrash(): Boolean {
+        val t = getSharedPreferences("crash", MODE_PRIVATE).getString("trace", null) ?: return false
+        startActivity(Intent(this, CrashActivity::class.java).putExtra("trace", t))
+        finish()
+        return true
+    }
+
+    private fun crashTo(e: Throwable) {
+        val sw = StringWriter()
+        e.printStackTrace(PrintWriter(sw))
+        val trace = sw.toString()
+        getSharedPreferences("crash", MODE_PRIVATE).edit().putString("trace", trace).apply()
+        startActivity(Intent(this, CrashActivity::class.java).putExtra("trace", trace))
+        finish()
     }
 }
