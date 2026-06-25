@@ -1,0 +1,64 @@
+name: Build MicroMasters APK
+
+on:
+  push:
+    branches:
+      - "claude/beautiful-euler-8659ry"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Assemble debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        run: ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: Stage APK as MicroMasters.apk
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/debug/app-debug.apk out/MicroMasters.apk
+          ls -la out
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MicroMasters-apk
+          path: out/MicroMasters.apk
+          if-no-files-found: error
+
+      - name: Publish APK to a rolling release
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest-build --yes --cleanup-tag || true
+          gh release create latest-build out/MicroMasters.apk \
+            --title "MicroMasters — legfrissebb build" \
+            --notes "Automatikus APK build a(z) ${{ github.sha }} commitból. Töltsd le a **MicroMasters.apk** fájlt, és telepítsd Android eszközre (engedélyezd az ismeretlen forrásokat)." \
+            --prerelease

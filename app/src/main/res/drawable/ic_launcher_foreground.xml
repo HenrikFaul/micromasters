@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- planet body -->
+    <path
+        android:fillColor="#FF49E0E0"
+        android:pathData="M28,54 A26,26 0 1,0 80,54 A26,26 0 1,0 28,54 Z" />
+    <!-- continents -->
+    <path
+        android:fillColor="#FF2E9C49"
+        android:pathData="M40,44 q8,-6 16,-2 q-2,6 -10,7 q-8,1 -6,-5 Z" />
+    <path
+        android:fillColor="#FF2E9C49"
+        android:pathData="M44,62 q10,-3 16,3 q-6,6 -14,3 q-6,-3 -2,-6 Z" />
+    <!-- shine -->
+    <path
+        android:fillColor="#FFB6F5F5"
+        android:pathData="M38,42 A5,5 0 1,0 48,42 A5,5 0 1,0 38,42 Z" />
+    <!-- moon -->
+    <path
+        android:fillColor="#FFF2A33C"
+        android:pathData="M74,38 A6,6 0 1,0 86,38 A6,6 0 1,0 74,38 Z" />
+</vector>

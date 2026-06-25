@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MicroMasters</string>
+
+    <!-- Title screen -->
+    <string name="title_play">JÁTSSZ</string>
+    <string name="title_login">Bejelentkezés</string>
+    <string name="title_tagline">Építsd fel a mikrovilágod!</string>
+
+    <!-- World select -->
+    <string name="worlds">Világok</string>
+    <string name="friends">Barátok</string>
+    <string name="settings">Beállítások</string>
+    <string name="select_world">Válassz világot</string>
+    <string name="locked">ZÁRVA</string>
+    <string name="enter">Belépés</string>
+    <string name="unlock_for_gems">Feloldás · %1$d 💎</string>
+    <string name="progress_fmt">%1$d/%2$d</string>
+
+    <!-- World names -->
+    <string name="world_kitchen">Konyha</string>
+    <string name="world_bathroom">Fürdőszoba</string>
+    <string name="world_garden">Kert</string>
+    <string name="world_spaceship">Űrhajó</string>
+
+    <!-- Game screen -->
+    <string name="collect">GYŰJTÉS</string>
+    <string name="tab_upgrade">Fejlesztés</string>
+    <string name="tab_units">Egységek</string>
+    <string name="tab_map">Térkép</string>
+    <string name="per_sec_fmt">%1$s/mp</string>
+    <string name="storage_fmt">%1$s / %2$s</string>
+    <string name="welcome_back">Üdv újra! Távollétedben +%1$s érmét termeltél.</string>
+    <string name="collected_fmt">+%1$s érme!</string>
+    <string name="storage_full">A raktár megtelt — gyűjts be!</string>
+
+    <!-- Upgrades sheet -->
+    <string name="upgrades_title">Fejlesztések</string>
+    <string name="seg_units">Egységek</string>
+    <string name="seg_buildings">Épületek</string>
+    <string name="seg_boosts">Boostok</string>
+    <string name="level_fmt">Szint %1$d</string>
+    <string name="hire">Felvétel</string>
+    <string name="not_enough">Nincs elég érme!</string>
+    <string name="not_enough_gems">Nincs elég gyémánt!</string>
+
+    <!-- Unit names -->
+    <string name="unit_miner">Bányász</string>
+    <string name="unit_carrier">Hordár</string>
+    <string name="unit_guard">Őr</string>
+    <string name="unit_scientist">Tudós</string>
+
+    <!-- Building names -->
+    <string name="bld_warehouse">Raktár</string>
+    <string name="bld_warehouse_desc">Növeli a raktárkapacitást</string>
+    <string name="bld_workshop">Műhely</string>
+    <string name="bld_workshop_desc">Növeli a termelést szintenként</string>
+    <string name="bld_lab">Labor</string>
+    <string name="bld_lab_desc">Gyémántot termel óránként</string>
+
+    <!-- Boosts -->
+    <string name="boost_2x">2× Termelés</string>
+    <string name="boost_2x_desc">Megduplázza a termelést 15 percre</string>
+    <string name="boost_fill">Azonnali raktár</string>
+    <string name="boost_fill_desc">Azonnal feltölti a raktárat</string>
+    <string name="boost_ad">Reklám bónusz</string>
+    <string name="boost_ad_desc">Nézz meg egy reklámot 5 perc termeléséért</string>
+    <string name="boost_active_fmt">Aktív: %1$s</string>
+    <string name="watch">Megnéz</string>
+
+    <!-- Map / territory -->
+    <string name="map_title">Térkép — %1$s</string>
+    <string name="conquer">Hódítás</string>
+    <string name="territory_fmt">%1$d. terület</string>
+    <string name="all_conquered">Minden terület meghódítva! 🏆</string>
+    <string name="world_cleared_reward">Világ teljesítve! +%1$d 💎</string>
+
+    <!-- Daily reward -->
+    <string name="daily_title">Napi Jutalom!</string>
+    <string name="daily_sub">Térj vissza holnap is!</string>
+    <string name="daily_day_fmt">%1$d. nap</string>
+    <string name="daily_claim">BEGYŰJT</string>
+    <string name="daily_done">KÉSZ</string>
+    <string name="daily_claimed">Holnap újabb jutalom vár!</string>
+
+    <!-- Shop -->
+    <string name="shop_title">Bolt</string>
+    <string name="shop_gems_small">Marék gyémánt</string>
+    <string name="shop_gems_big">Láda gyémánt</string>
+    <string name="shop_free_coins">Ingyen érme (reklám)</string>
+    <string name="shop_note">A vásárlások szimuláltak ebben a demóban.</string>
+    <string name="get">Kérem</string>
+
+    <!-- Common -->
+    <string name="close">Bezár</string>
+    <string name="reset">Mentés törlése</string>
+    <string name="reset_confirm">Biztosan törlöd a mentést?</string>
+</resources>
