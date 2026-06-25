@@ -119,4 +119,21 @@
     <string name="quest_upgrade">Végezz 3 fejlesztést</string>
     <string name="quest_conquer">Hódíts meg 1 területet</string>
     <string name="quest_progress_fmt">%1$s / %2$s</string>
+
+    <!-- World Essence + Refinery -->
+    <string name="bld_refinery">Finomító</string>
+    <string name="bld_refinery_desc">Eszenciát termel a világból</string>
+    <string name="essence_kitchen">Morzsa</string>
+    <string name="essence_bathroom">Buborék</string>
+    <string name="essence_garden">Pollen</string>
+    <string name="essence_spaceship">Plazma</string>
+    <string name="refine">Finomítás</string>
+    <string name="refine_fmt">Finomítás · %1$s</string>
+    <string name="not_enough_essence">Nincs elég eszencia!</string>
+
+    <!-- Offline summary -->
+    <string name="offline_title">Üdv újra!</string>
+    <string name="offline_away_fmt">%1$s voltál távol</string>
+    <string name="offline_double">×2 📺</string>
+    <string name="offline_ok">RENDBEN</string>
 </resources>

@@ -72,6 +72,28 @@
         app:iconGravity="textStart"
         app:iconTint="@null" />
 
+    <TextView
+        android:id="@+id/mapEssence"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:text=""
+        android:textColor="@color/text_dim"
+        android:textSize="13sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnRefine"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/refine"
+        android:textColor="#3A2400"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:backgroundTint="@color/gold"
+        app:cornerRadius="16dp" />
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnMapClose"
         style="@style/Widget.Material3.Button.TextButton"

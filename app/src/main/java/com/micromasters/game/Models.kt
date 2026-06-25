@@ -48,7 +48,9 @@ class WorldDef(
     val ground: Int,
     val accent: Int,
     val worker: String,
-    val nodes: Array<String>
+    val nodes: Array<String>,
+    val essenceName: Int,
+    val essenceEmoji: String
 )
 
 class QuestDef(val nameRes: Int, val emoji: String, val target: Long, val rewardGems: Int)
@@ -67,7 +69,8 @@ object Defs {
     val BUILDINGS = listOf(
         BuildingDef("warehouse", R.string.bld_warehouse, R.string.bld_warehouse_desc, "📦", 150.0, 1.45),
         BuildingDef("workshop", R.string.bld_workshop, R.string.bld_workshop_desc, "🔧", 420.0, 1.55),
-        BuildingDef("lab", R.string.bld_lab, R.string.bld_lab_desc, "💡", 2600.0, 1.7)
+        BuildingDef("lab", R.string.bld_lab, R.string.bld_lab_desc, "💡", 2600.0, 1.7),
+        BuildingDef("refinery", R.string.bld_refinery, R.string.bld_refinery_desc, "⚗️", 800.0, 1.6)
     )
 
     val BOOSTS = listOf(
@@ -84,7 +87,8 @@ object Defs {
             unlockGems = 0, unlockedByDefault = true, clearReward = 80,
             skyTop = 0xFFE7B57A.toInt(), skyBottom = 0xFF7A4A24.toInt(),
             ground = 0xFF8A5A2E.toInt(), accent = 0xFFFFD27A.toInt(),
-            worker = "🐜", nodes = arrayOf("🍞", "🍅", "🥚", "🍶", "🍪")
+            worker = "🐜", nodes = arrayOf("🍞", "🍅", "🥚", "🍶", "🍪"),
+            essenceName = R.string.essence_kitchen, essenceEmoji = "🌾"
         ),
         WorldDef(
             "bathroom", R.string.world_bathroom, "🛁",
@@ -92,7 +96,8 @@ object Defs {
             unlockGems = 0, unlockedByDefault = true, clearReward = 150,
             skyTop = 0xFF7FD8E6.toInt(), skyBottom = 0xFF1E6E78.toInt(),
             ground = 0xFF2C8A93.toInt(), accent = 0xFFBFF3FA.toInt(),
-            worker = "🐌", nodes = arrayOf("💧", "🛁", "🚿", "💧", "🔵")
+            worker = "🐌", nodes = arrayOf("💧", "🛁", "🚿", "💧", "🔵"),
+            essenceName = R.string.essence_bathroom, essenceEmoji = "💧"
         ),
         WorldDef(
             "garden", R.string.world_garden, "🌷",
@@ -100,7 +105,8 @@ object Defs {
             unlockGems = 120, unlockedByDefault = false, clearReward = 300,
             skyTop = 0xFF9FE07A.toInt(), skyBottom = 0xFF2E7A2E.toInt(),
             ground = 0xFF3C8A3C.toInt(), accent = 0xFFE6FFC2.toInt(),
-            worker = "🐛", nodes = arrayOf("🌱", "🍄", "🌷", "🐞", "🍀")
+            worker = "🐛", nodes = arrayOf("🌱", "🍄", "🌷", "🐞", "🍀"),
+            essenceName = R.string.essence_garden, essenceEmoji = "🌼"
         ),
         WorldDef(
             "spaceship", R.string.world_spaceship, "🚀",
@@ -108,7 +114,8 @@ object Defs {
             unlockGems = 400, unlockedByDefault = false, clearReward = 800,
             skyTop = 0xFF3A4E8C.toInt(), skyBottom = 0xFF0E1430.toInt(),
             ground = 0xFF243056.toInt(), accent = 0xFF9FB8FF.toInt(),
-            worker = "👽", nodes = arrayOf("🔩", "🔋", "💾", "⚙️", "🛰️")
+            worker = "👽", nodes = arrayOf("🔩", "🔋", "💾", "⚙️", "🛰️"),
+            essenceName = R.string.essence_spaceship, essenceEmoji = "⚛️"
         )
     )
 

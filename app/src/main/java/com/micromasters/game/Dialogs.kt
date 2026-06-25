@@ -468,6 +468,9 @@ object Dialogs {
             v.mapEmoji.text = def.emoji
             v.mapProgress.text = act.getString(R.string.progress_fmt, ws.territories, Defs.TERRITORIES)
             v.mapBar.progress = ws.territories
+            v.mapEssence.text = def.essenceEmoji + " " + act.getString(def.essenceName) + ": " + Format.short(ws.essence)
+            v.btnRefine.text = act.getString(R.string.refine_fmt, Format.short(s.refineCost(ws))) + " " + def.essenceEmoji
+            v.btnRefine.isEnabled = ws.essence >= s.refineCost(ws)
             if (ws.territories >= Defs.TERRITORIES) {
                 v.mapHint.text = act.getString(R.string.all_conquered)
                 v.btnConquer.isEnabled = false
@@ -495,8 +498,77 @@ object Dialogs {
                 Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
             }
         }
+        v.btnRefine.setOnClickListener {
+            if (s.refine()) {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                Game.save(act)
+                onChange()
+                refresh()
+            } else {
+                Toast.makeText(act, R.string.not_enough_essence, Toast.LENGTH_SHORT).show()
+            }
+        }
         v.btnMapClose.setOnClickListener { dialog.dismiss() }
         refresh()
+        dialog.show()
+    }
+
+    // ----------------------------------------------------------------- offline
+
+    fun showOffline(act: Activity, r: GameState.OfflineResult, onChange: () -> Unit) {
+        val s = Game.get(act)
+        val pad = dp(act, 20)
+        val root = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_card)
+            setPadding(pad, pad, pad, pad)
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        }
+        root.addView(TextView(act).apply {
+            text = act.getString(R.string.offline_title)
+            setTextColor(ContextCompat.getColor(act, R.color.gold))
+            textSize = 24f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        })
+        val mins = (r.awayMs / 60_000L).coerceIn(0L, 480L)
+        val awayStr = if (mins >= 60) "${mins / 60} ó ${mins % 60} p" else "$mins p"
+        root.addView(TextView(act).apply {
+            text = act.getString(R.string.offline_away_fmt, awayStr)
+            setTextColor(DIM)
+            textSize = 14f
+            setPadding(0, dp(act, 6), 0, dp(act, 12))
+        })
+        root.addView(TextView(act).apply {
+            text = "+" + Format.short(r.coins) + " 💰" +
+                (if (r.gems > 0) "    +" + Format.short(r.gems) + " 💎" else "")
+            setTextColor(WHITE)
+            textSize = 22f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        })
+
+        val dialog = AlertDialog.Builder(act).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val row = LinearLayout(act).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(act, 18), 0, 0)
+        }
+        row.addView(android.widget.Button(act).apply {
+            text = act.getString(R.string.offline_double)
+            setOnClickListener {
+                s.coins += r.coins
+                Game.save(act)
+                onChange()
+                Toast.makeText(act, "+" + Format.short(r.coins) + " 💰", Toast.LENGTH_SHORT).show()
+                isEnabled = false
+            }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(android.widget.Button(act).apply {
+            text = act.getString(R.string.offline_ok)
+            setOnClickListener { dialog.dismiss() }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(row)
+
         dialog.show()
     }
 

@@ -17,6 +17,8 @@ class WorldState(
     val buildingLevels: IntArray = IntArray(Defs.BUILDINGS.size),
     var pending: Double = 0.0,
     var gemPending: Double = 0.0,
+    var essence: Double = 0.0,
+    var essenceRefines: Int = 0,
     var lastTick: Long = 0L
 )
 
@@ -59,6 +61,13 @@ class GameState {
     /** Lab building turns into a slow gem faucet (gems per second). */
     fun labGemsPerSec(ws: WorldState): Double = ws.buildingLevels[2] * 0.5 / 3600.0
 
+    /** Refinery building strongly accelerates world Essence. */
+    fun refineryMult(ws: WorldState): Double = 1.0 + 0.5 * ws.buildingLevels[3]
+
+    /** World-specific Essence produced per second (slow; Refinery multiplies it). */
+    fun essencePerSec(ws: WorldState): Double =
+        unitsBaseProd(ws) * 0.04 * refineryMult(ws) * territoryBonus(ws)
+
     fun capacity(id: String): Double {
         val def = Defs.world(id)
         return def.baseCap * warehouseMult(world(id))
@@ -68,7 +77,8 @@ class GameState {
     fun baseProdPerSec(id: String): Double {
         val def = Defs.world(id)
         val ws = world(id)
-        return unitsBaseProd(ws) * def.prodMult * workshopMult(ws) * territoryBonus(ws)
+        return unitsBaseProd(ws) * def.prodMult * workshopMult(ws) * territoryBonus(ws) *
+            (1.0 + 0.02 * ws.essenceRefines)
     }
 
     fun boostActive(now: Long): Boolean = now < boostExpiry && boostMult > 1.0
@@ -113,8 +123,10 @@ class GameState {
         val before = ws.pending
         ws.pending = min(cap, ws.pending + effectiveProdPerSec(id, now) * dt)
         ws.gemPending += labGemsPerSec(ws) * dt
+        ws.essence += essencePerSec(ws) * dt
         if (!ws.pending.isFinite()) ws.pending = before
         if (!ws.gemPending.isFinite()) ws.gemPending = 0.0
+        if (!ws.essence.isFinite()) ws.essence = 0.0
         return ws.pending - before
     }
 
@@ -133,17 +145,21 @@ class GameState {
      * Resume-only offline bonus for the active world, decoupled from the storage cap so the
      * 8-hour idle window is actually meaningful. Credits coins directly and returns the amount.
      */
-    fun accrueOffline(now: Long, awayMs: Long): Double {
+    class OfflineResult(val coins: Long, val gems: Long, val awayMs: Long)
+
+    fun accrueOffline(now: Long, awayMs: Long): OfflineResult {
         val ws = active()
         // Keep lastTick coherent so the live ticker doesn't double-count.
         for (w in worlds.values) w.lastTick = now
         val awaySec = min(awayMs / 1000.0, 8.0 * 3600.0)
-        if (awaySec <= 0.0) return 0.0
-        val gained = effectiveProdPerSec(activeWorld, now) * awaySec * 0.5
-        val gemGain = labGemsPerSec(ws) * awaySec
-        if (gained.isFinite() && gained >= 1.0) coins += floor(gained).toLong()
-        if (gemGain.isFinite() && gemGain >= 1.0) gems += floor(gemGain).toLong()
-        return if (gained.isFinite()) gained else 0.0
+        if (awaySec <= 0.0) return OfflineResult(0L, 0L, awayMs)
+        val gainedD = effectiveProdPerSec(activeWorld, now) * awaySec * 0.5
+        val gemD = labGemsPerSec(ws) * awaySec
+        val c = if (gainedD.isFinite() && gainedD >= 1.0) floor(gainedD).toLong() else 0L
+        val g = if (gemD.isFinite() && gemD >= 1.0) floor(gemD).toLong() else 0L
+        coins += c
+        gems += g
+        return OfflineResult(c, g, awayMs)
     }
 
     fun collect(): Long {
@@ -180,6 +196,19 @@ class GameState {
         coins -= cost
         ws.buildingLevels[i] += 1
         qUpgrades += 1
+        return true
+    }
+
+    fun refineCost(ws: WorldState): Long =
+        floor(10.0 * 1.7.pow(ws.essenceRefines.coerceAtMost(60))).toLong()
+
+    /** Spends world Essence for a permanent +2% production refine in the active world. */
+    fun refine(): Boolean {
+        val ws = active()
+        val cost = refineCost(ws)
+        if (ws.essence < cost) return false
+        ws.essence -= cost
+        ws.essenceRefines += 1
         return true
     }
 
@@ -331,6 +360,8 @@ class GameState {
             wo.put("clearRewardClaimed", w.clearRewardClaimed)
             wo.put("pending", safe(w.pending))
             wo.put("gemPending", safe(w.gemPending))
+            wo.put("essence", safe(w.essence))
+            wo.put("essenceRefines", w.essenceRefines)
             wo.put("lastTick", w.lastTick)
             wo.put("units", JSONArray(w.unitLevels.toList()))
             wo.put("buildings", JSONArray(w.buildingLevels.toList()))
@@ -392,6 +423,8 @@ class GameState {
                     w.clearRewardClaimed = wo.optBoolean("clearRewardClaimed", false)
                     w.pending = wo.optDouble("pending", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
                     w.gemPending = wo.optDouble("gemPending", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
+                    w.essence = wo.optDouble("essence", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
+                    w.essenceRefines = wo.optInt("essenceRefines", 0).coerceAtLeast(0)
                     w.lastTick = wo.optLong("lastTick", now)
                     readInts(wo.optJSONArray("units"), w.unitLevels)
                     readInts(wo.optJSONArray("buildings"), w.buildingLevels)

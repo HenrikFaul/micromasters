@@ -18,6 +18,7 @@ class GameActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var shownWorkers = -1
     private var lastEmptyToast = 0L
+    private var pendingOffline: GameState.OfflineResult? = null
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -37,10 +38,7 @@ class GameActivity : AppCompatActivity() {
         // Offline earnings since last session (decoupled from the live storage cap).
         val now = System.currentTimeMillis()
         val away = now - s.lastSeen
-        val earned = if (away > 60_000L) s.accrueOffline(now, away) else { s.tick(now); 0.0 }
-        if (earned >= 1.0) {
-            Toast.makeText(this, getString(R.string.welcome_back, Format.short(earned)), Toast.LENGTH_LONG).show()
-        }
+        if (away > 60_000L) pendingOffline = s.accrueOffline(now, away) else s.tick(now)
 
         b.btnBack.setOnClickListener { finish() }
         b.btnShop.setOnClickListener { it.bounce(); Dialogs.showShop(this) { onStateChanged() } }
@@ -63,6 +61,11 @@ class GameActivity : AppCompatActivity() {
         refreshLive(System.currentTimeMillis())
         handler.removeCallbacks(ticker)
         handler.post(ticker)
+
+        pendingOffline?.let { r ->
+            pendingOffline = null
+            if (r.coins >= 1 || r.gems >= 1) Dialogs.showOffline(this, r) { onStateChanged() }
+        }
     }
 
     override fun onPause() {
@@ -124,6 +127,7 @@ class GameActivity : AppCompatActivity() {
         b.gemsText.text = Format.short(s.gems)
 
         val ws = s.active()
+        b.essenceText.text = Defs.world(s.activeWorld).essenceEmoji + " " + Format.short(ws.essence)
         val cap = s.capacity(s.activeWorld)
         val ratio = if (cap > 0) (ws.pending / cap).toFloat() else 0f
         b.storageBar.progress = (ratio * 1000).toInt().coerceIn(0, 1000)
