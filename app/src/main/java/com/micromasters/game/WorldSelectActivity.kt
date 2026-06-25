@@ -21,10 +21,9 @@ class WorldSelectActivity : AppCompatActivity() {
         setContentView(b.root)
 
         b.btnShop.setOnClickListener { Dialogs.showShop(this) { refresh() } }
+        b.eventBanner.setOnClickListener { Dialogs.showShop(this) { refresh() } }
         b.navWorlds.setOnClickListener { refresh() }
-        b.navFriends.setOnClickListener {
-            Toast.makeText(this, "🏆 Ranglista hamarosan!", Toast.LENGTH_SHORT).show()
-        }
+        b.navFriends.setOnClickListener { Dialogs.showLeaderboard(this) }
         b.navSettings.setOnClickListener { Dialogs.showSettings(this) { refresh() } }
     }
 
@@ -44,6 +43,10 @@ class WorldSelectActivity : AppCompatActivity() {
         val s = Game.get(this)
         b.coinsText.text = Format.short(s.coins)
         b.gemsText.text = Format.short(s.gems)
+        val now = System.currentTimeMillis()
+        val tz = java.util.TimeZone.getDefault()
+        val msToMidnight = 86_400_000L - (now + tz.getOffset(now)) % 86_400_000L
+        b.eventText.text = getString(R.string.event_fmt, Format.duration(msToMidnight))
         buildWorldList(s)
     }
 

@@ -95,4 +95,20 @@
     <string name="close">Bezár</string>
     <string name="reset">Mentés törlése</string>
     <string name="reset_confirm">Biztosan törlöd a mentést?</string>
+
+    <!-- Hardening / fidelity additions -->
+    <string name="storage_empty">Még nincs mit gyűjteni</string>
+    <string name="territory_hint">Minden meghódított terület gyorsítja a termelést</string>
+    <string name="daily_streak_fmt">🔥 %1$d napos sorozat — ne hagyd elveszni!</string>
+    <string name="leaderboard_title">🏆 Ranglista</string>
+    <string name="you">TE</string>
+    <string name="event_fmt">Hétvégi 2× esemény — még %1$s!</string>
+    <string name="share">Megosztás</string>
+    <string name="share_text">🐜 %1$s érmét gyűjtöttem a MicroMastersben! Játssz velem!</string>
+    <string name="shop_battlepass">Harci Útvonal</string>
+    <string name="shop_battlepass_desc">Szezonális jutalmak 30 napon át</string>
+    <string name="shop_vip">VIP Klub</string>
+    <string name="shop_vip_desc">Dupla termelés és napi bónusz</string>
+    <string name="shop_skin">Arany egységek</string>
+    <string name="shop_skin_desc">Csillogó arany kinézet az egységeknek</string>
 </resources>

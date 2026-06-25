@@ -3,6 +3,9 @@ package com.micromasters.game
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.HapticFeedbackConstants
+import android.view.View
+import android.view.animation.OvershootInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.micromasters.game.databinding.ActivityGameBinding
@@ -14,6 +17,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var s: GameState
     private val handler = Handler(Looper.getMainLooper())
     private var shownWorkers = -1
+    private var lastEmptyToast = 0L
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -30,24 +34,22 @@ class GameActivity : AppCompatActivity() {
         setContentView(b.root)
         s = Game.get(this)
 
-        // Offline earnings since last session.
+        // Offline earnings since last session (decoupled from the live storage cap).
         val now = System.currentTimeMillis()
-        val ws = s.active()
-        val before = ws.pending
-        s.tick(now)
-        val earned = ws.pending - before
-        if (earned >= 1.0 && now - s.lastSeen > 60_000L) {
+        val away = now - s.lastSeen
+        val earned = if (away > 60_000L) s.accrueOffline(now, away) else { s.tick(now); 0.0 }
+        if (earned >= 1.0) {
             Toast.makeText(this, getString(R.string.welcome_back, Format.short(earned)), Toast.LENGTH_LONG).show()
         }
 
         b.btnBack.setOnClickListener { finish() }
-        b.btnShop.setOnClickListener { Dialogs.showShop(this) { onStateChanged() } }
-        b.btnGameMenu.setOnClickListener { Dialogs.showSettings(this) { onStateChanged() } }
-        b.btnCollect.setOnClickListener { collect() }
+        b.btnShop.setOnClickListener { it.bounce(); Dialogs.showShop(this) { onStateChanged() } }
+        b.btnGameMenu.setOnClickListener { it.bounce(); Dialogs.showUpgrades(this, 2) { onStateChanged() } }
+        b.btnCollect.setOnClickListener { b.btnCollect.bounce(); collect() }
         b.gameView.setOnClickListener { collect() }
-        b.btnUpgrade.setOnClickListener { Dialogs.showUpgrades(this, 0) { onStateChanged() } }
-        b.btnUnits.setOnClickListener { Dialogs.showUpgrades(this, 0) { onStateChanged() } }
-        b.btnMap.setOnClickListener { Dialogs.showMap(this) { onStateChanged() } }
+        b.btnUpgrade.setOnClickListener { it.bounce(); Dialogs.showUpgrades(this, 0) { onStateChanged() } }
+        b.btnUnits.setOnClickListener { it.bounce(); Dialogs.showUpgrades(this, 0) { onStateChanged() } }
+        b.btnMap.setOnClickListener { it.bounce(); Dialogs.showMap(this) { onStateChanged() } }
     }
 
     override fun onResume() {
@@ -57,6 +59,7 @@ class GameActivity : AppCompatActivity() {
         b.worldTitle.text = def.emoji + "  " + getString(def.nameRes)
         shownWorkers = -1
         syncWorkers()
+        b.gameView.resume()
         refreshLive(System.currentTimeMillis())
         handler.removeCallbacks(ticker)
         handler.post(ticker)
@@ -65,7 +68,16 @@ class GameActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(ticker)
+        b.gameView.pause()
         Game.save(this)
+    }
+
+    private fun View.bounce() {
+        animate().cancel()
+        scaleX = 0.9f
+        scaleY = 0.9f
+        animate().scaleX(1f).scaleY(1f).setDuration(170)
+            .setInterpolator(OvershootInterpolator(3f)).start()
     }
 
     private fun workerCount(): Int {
@@ -94,7 +106,15 @@ class GameActivity : AppCompatActivity() {
         val amount = s.collect()
         if (amount > 0) {
             b.gameView.spawnCollect("+" + Format.short(amount))
+            b.btnCollect.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             Game.save(this)
+        } else {
+            b.btnCollect.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            b.gameView.shake()
+            if (now - lastEmptyToast > 1500L) {
+                lastEmptyToast = now
+                Toast.makeText(this, getString(R.string.storage_empty), Toast.LENGTH_SHORT).show()
+            }
         }
         refreshLive(now)
     }

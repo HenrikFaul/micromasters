@@ -35,8 +35,12 @@ object Game {
     fun save(context: Context) {
         val s = state ?: return
         s.lastSeen = System.currentTimeMillis()
-        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY, s.toJson().toString()).apply()
+        try {
+            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            prefs.edit().putString(KEY, s.toJson().toString()).apply()
+        } catch (e: Exception) {
+            // Never let a serialization hiccup crash onPause; state stays in memory.
+        }
     }
 
     fun reset(context: Context): GameState {

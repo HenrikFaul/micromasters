@@ -3,7 +3,9 @@ package com.micromasters.game
 import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.view.HapticFeedbackConstants
 import android.view.View
+import android.view.animation.OvershootInterpolator
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -31,6 +33,15 @@ object Dialogs {
     private const val DARK_GOLD = 0xFF3A2400.toInt()
     private const val DIM = 0xFFAFBEDC.toInt()
     private const val WHITE = 0xFFFFFFFF.toInt()
+
+    private fun View.pop() {
+        performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        animate().cancel()
+        scaleX = 0.85f
+        scaleY = 0.85f
+        animate().scaleX(1f).scaleY(1f).setDuration(150)
+            .setInterpolator(OvershootInterpolator()).start()
+    }
 
     // ---------------------------------------------------------------- upgrades
 
@@ -62,7 +73,7 @@ object Dialogs {
         fun rebuild() {
             v.upgradeList.removeAllViews()
             val now = System.currentTimeMillis()
-            v.segBoostInfo.text = if (s.boostActive(now)) "⚡ " + Format.duration(s.boostExpiry - now) else ""
+            v.segBoostInfo.text = if (s.boostActive(now)) "⚡️ " + Format.duration(s.boostExpiry - now) else ""
             val ws = s.active()
             val def = Defs.world(s.activeWorld)
 
@@ -70,7 +81,7 @@ object Dialogs {
                 0 -> for (i in Defs.UNITS.indices) {
                     val d = Defs.UNITS[i]
                     val lvl = ws.unitLevels[i]
-                    val contrib = d.baseProd * lvl * def.prodMult * s.workshopMult(ws) * s.labMult(ws) * s.territoryBonus(ws)
+                    val contrib = d.baseProd * lvl * def.prodMult * s.workshopMult(ws) * s.territoryBonus(ws)
                     val sub = if (lvl == 0) act.getString(R.string.hire)
                     else act.getString(R.string.level_fmt, lvl) + " · +" + Format.short(contrib) + "/mp"
                     val r = newRow(d.emoji, act.getString(d.nameRes), sub)
@@ -79,7 +90,7 @@ object Dialogs {
                     r.upBtn.backgroundTintList = csl(act, R.color.green)
                     r.upBtn.setTextColor(DARK_GREEN)
                     r.upBtn.setOnClickListener {
-                        if (s.upgradeUnit(i)) { onChange(); rebuild() }
+                        if (s.upgradeUnit(i)) { it.pop(); onChange(); rebuild() }
                         else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
                     }
                     v.upgradeList.addView(r.root)
@@ -88,14 +99,16 @@ object Dialogs {
                 1 -> for (i in Defs.BUILDINGS.indices) {
                     val d = Defs.BUILDINGS[i]
                     val lvl = ws.buildingLevels[i]
-                    val sub = act.getString(R.string.level_fmt, lvl) + " · " + act.getString(d.descRes)
+                    val extra = if (i == 2 && lvl > 0)
+                        " · +" + Format.short(s.labGemsPerSec(ws) * 3600) + " 💎/h" else ""
+                    val sub = act.getString(R.string.level_fmt, lvl) + " · " + act.getString(d.descRes) + extra
                     val r = newRow(d.emoji, act.getString(d.nameRes), sub)
                     r.upBtn.text = Format.short(s.buildingCost(ws, i))
                     r.upBtn.setIconResource(R.drawable.ic_coin)
                     r.upBtn.backgroundTintList = csl(act, R.color.green)
                     r.upBtn.setTextColor(DARK_GREEN)
                     r.upBtn.setOnClickListener {
-                        if (s.upgradeBuilding(i)) { onChange(); rebuild() }
+                        if (s.upgradeBuilding(i)) { it.pop(); onChange(); rebuild() }
                         else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
                     }
                     v.upgradeList.addView(r.root)
@@ -116,7 +129,7 @@ object Dialogs {
                     }
                     r.upBtn.setOnClickListener {
                         if (s.applyBoost(d, System.currentTimeMillis())) {
-                            onChange(); rebuild()
+                            it.pop(); onChange(); rebuild()
                             Toast.makeText(act, act.getString(d.nameRes) + " ✓", Toast.LENGTH_SHORT).show()
                         } else Toast.makeText(act, R.string.not_enough_gems, Toast.LENGTH_SHORT).show()
                     }
@@ -141,15 +154,19 @@ object Dialogs {
 
         val now = System.currentTimeMillis()
         val idx = s.dailyIndex(now)
+        if (s.dailyStreak > 0) {
+            v.dailySub.text = act.getString(R.string.daily_streak_fmt, s.dailyStreak)
+        }
         val cols = 4
         v.dailyGrid.removeAllViews()
         v.dailyGrid.columnCount = cols
 
+        var claimedCell: View? = null
         for (i in Defs.DAILY.indices) {
             val reward = Defs.DAILY[i]
             val cell = ItemDailyBinding.inflate(act.layoutInflater, v.dailyGrid, false)
             cell.dayLabel.text = act.getString(R.string.daily_day_fmt, i + 1)
-            cell.dayIcon.text = if (reward.isGems) "💎" else "🪙"
+            cell.dayIcon.text = if (reward.isGems) "💎" else "💰"
             cell.dayAmount.text = Format.short(reward.amount)
 
             when {
@@ -158,6 +175,7 @@ object Dialogs {
                     cell.dayCell.setBackgroundResource(R.drawable.bg_seg_selected)
                     cell.dayLabel.setTextColor(DARK_GOLD)
                     cell.dayAmount.setTextColor(DARK_GOLD)
+                    claimedCell = cell.dayCell
                 }
             }
 
@@ -171,16 +189,73 @@ object Dialogs {
             v.dailyGrid.addView(cell.root)
         }
 
-        v.btnClaim.setOnClickListener {
+        v.btnClaim.setOnClickListener { btn ->
             val r = s.claimDaily(System.currentTimeMillis())
             if (r != null) {
                 Game.save(act)
                 onChange()
-                val unit = if (r.isGems) " 💎" else " 🪙"
+                btn.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                val unit = if (r.isGems) " 💎" else " 💰"
                 Toast.makeText(act, "+" + Format.short(r.amount) + unit, Toast.LENGTH_SHORT).show()
-            }
-            dialog.dismiss()
+                val cell = claimedCell
+                if (cell != null) {
+                    cell.scaleX = 0.7f
+                    cell.scaleY = 0.7f
+                    cell.animate().scaleX(1.15f).scaleY(1.15f).setDuration(220)
+                        .setInterpolator(OvershootInterpolator(4f))
+                        .withEndAction {
+                            cell.animate().scaleX(1f).scaleY(1f).setDuration(120)
+                                .withEndAction { dialog.dismiss() }.start()
+                        }.start()
+                } else dialog.dismiss()
+            } else dialog.dismiss()
         }
+        dialog.show()
+    }
+
+    // -------------------------------------------------------------- leaderboard
+
+    fun showLeaderboard(act: Activity) {
+        val s = Game.get(act)
+        var power = s.coins
+        for ((id, w) in s.worlds) {
+            if (w.unlocked) power += (s.baseProdPerSec(id) * 600).toLong()
+        }
+        val you = act.getString(R.string.you)
+        val rows = listOf(
+            "AntKing 🐜" to power * 3 + 4200,
+            "MikroMaja" to power * 2 + 1500,
+            "Cellulord" to (power * 1.4).toLong() + 800,
+            "NanoNeo" to (power * 0.7).toLong() + 120,
+            "BugBoss" to (power * 0.4).toLong(),
+            you to power
+        ).sortedByDescending { it.second }
+
+        val pad = dp(act, 18)
+        val root = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_card)
+            setPadding(pad, pad, pad, pad)
+        }
+        root.addView(TextView(act).apply {
+            text = act.getString(R.string.leaderboard_title)
+            setTextColor(WHITE)
+            textSize = 20f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        })
+        rows.forEachIndexed { i, (name, score) ->
+            val mine = name == you
+            root.addView(TextView(act).apply {
+                text = "${i + 1}.  $name      ${Format.short(score)}"
+                setTextColor(if (mine) ContextCompat.getColor(act, R.color.gold) else WHITE)
+                textSize = 16f
+                setPadding(0, dp(act, 9), 0, 0)
+                if (mine) setTypeface(typeface, android.graphics.Typeface.BOLD)
+            })
+        }
+        val dialog = AlertDialog.Builder(act).setView(root)
+            .setPositiveButton(R.string.close, null).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.show()
     }
 
@@ -225,7 +300,11 @@ object Dialogs {
             )
             lp.topMargin = dp(act, 12)
             r.root.layoutParams = lp
-            r.upBtn.setOnClickListener { action(); onChange() }
+            r.upBtn.setOnClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                action()
+                onChange()
+            }
             root.addView(r.root)
         }
 
@@ -233,17 +312,41 @@ object Dialogs {
             val grant = max(50L, floor(s.baseProdPerSec(s.activeWorld) * 300.0).toLong())
             s.coins += grant
             Game.save(act)
-            Toast.makeText(act, "+" + Format.short(grant) + " 🪙", Toast.LENGTH_SHORT).show()
+            Toast.makeText(act, "+" + Format.short(grant) + " 💰", Toast.LENGTH_SHORT).show()
         }
         addRow("💎", act.getString(R.string.shop_gems_small), "+25 💎", act.getString(R.string.get), true) {
             s.gems += 25
             Game.save(act)
             Toast.makeText(act, "+25 💎", Toast.LENGTH_SHORT).show()
         }
-        addRow("🧰", act.getString(R.string.shop_gems_big), "+120 💎", act.getString(R.string.get), true) {
+        addRow("🎁", act.getString(R.string.shop_gems_big), "+120 💎", act.getString(R.string.get), true) {
             s.gems += 120
             Game.save(act)
             Toast.makeText(act, "+120 💎", Toast.LENGTH_SHORT).show()
+        }
+        addRow("🎖️", act.getString(R.string.shop_battlepass), act.getString(R.string.shop_battlepass_desc), act.getString(R.string.get), true) {
+            s.gems += 50
+            Game.save(act)
+            Toast.makeText(act, act.getString(R.string.shop_battlepass) + " ✓", Toast.LENGTH_SHORT).show()
+        }
+        addRow("👑", act.getString(R.string.shop_vip), act.getString(R.string.shop_vip_desc), act.getString(R.string.get), true) {
+            s.boostMult = 2.0
+            s.boostExpiry = System.currentTimeMillis() + 24L * 3600_000L
+            Game.save(act)
+            Toast.makeText(act, act.getString(R.string.shop_vip) + " ✓", Toast.LENGTH_SHORT).show()
+        }
+        addRow("✨", act.getString(R.string.shop_skin), act.getString(R.string.shop_skin_desc),
+            if (s.skinGold) act.getString(R.string.daily_done) else "40", true) {
+            if (!s.skinGold && s.gems >= 40) {
+                s.gems -= 40
+                s.skinGold = true
+                Game.save(act)
+                Toast.makeText(act, act.getString(R.string.shop_skin) + " ✓", Toast.LENGTH_SHORT).show()
+            } else if (s.skinGold) {
+                Toast.makeText(act, act.getString(R.string.daily_done), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(act, act.getString(R.string.not_enough_gems), Toast.LENGTH_SHORT).show()
+            }
         }
 
         root.addView(TextView(act).apply {
@@ -284,7 +387,7 @@ object Dialogs {
                 v.btnConquer.icon = null
                 v.btnConquer.text = act.getString(R.string.all_conquered)
             } else {
-                v.mapHint.text = "Minden meghódított terület +5% termelés"
+                v.mapHint.text = act.getString(R.string.territory_hint)
                 v.btnConquer.isEnabled = true
                 v.btnConquer.setIconResource(R.drawable.ic_coin)
                 v.btnConquer.text = act.getString(R.string.conquer) + " · " + Format.short(s.territoryCost(s.activeWorld))
@@ -294,6 +397,7 @@ object Dialogs {
         v.btnConquer.setOnClickListener {
             val res = s.conquer()
             if (res.ok) {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 Game.save(act)
                 onChange()
                 if (res.clearedWorld) {
@@ -316,6 +420,14 @@ object Dialogs {
             .setTitle(R.string.settings)
             .setMessage("MicroMasters v1.0\nHyper-casual · Idle · Strategy\n\nÉpítsd, fejleszd és irányítsd apró egységeidet mikroszkopikus világokban!")
             .setPositiveButton(R.string.close, null)
+            .setNeutralButton(R.string.share) { _, _ ->
+                val s = Game.get(act)
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, act.getString(R.string.share_text, Format.short(s.coins)))
+                }
+                act.startActivity(Intent.createChooser(send, act.getString(R.string.share)))
+            }
             .setNegativeButton(R.string.reset) { _, _ ->
                 AlertDialog.Builder(act)
                     .setMessage(R.string.reset_confirm)
