@@ -21,7 +21,8 @@ class WorldState(
     var essenceRefines: Int = 0,
     var lastTick: Long = 0L,
     var lifetimeCoins: Double = 0.0,
-    var masteryStars: Int = 0
+    var masteryStars: Int = 0,
+    var everCleared: Boolean = false
 )
 
 /** Full save-game and the simulation rules that operate on it. */
@@ -326,10 +327,15 @@ class GameState {
         if (ws.territories >= Defs.TERRITORIES && !ws.clearRewardClaimed) {
             ws.clearRewardClaimed = true
             cleared = true
-            reward = def.clearReward
-            gems += reward
-            core = Defs.coreReward(activeWorld)
-            cores += core
+            // Clear gems + Cores are granted only the FIRST time a world is cleared, ever.
+            // Prestige re-clears earn Mastery Stars (the loop reward), not a repeatable faucet.
+            if (!ws.everCleared) {
+                ws.everCleared = true
+                reward = def.clearReward
+                gems += reward
+                core = Defs.coreReward(activeWorld)
+                cores += core
+            }
         }
         return ConquerResult(true, cleared, reward, core)
     }
@@ -341,7 +347,9 @@ class GameState {
         if (gems < def.unlockGems) return false
         gems -= def.unlockGems
         ws.unlocked = true
-        ws.lastTick = lastSeen
+        // Stamp NOW (not the stale lastSeen) so a freshly unlocked world starts from zero,
+        // not an instant 8-hour cap fill on its first tick.
+        ws.lastTick = System.currentTimeMillis()
         return true
     }
 
@@ -467,6 +475,7 @@ class GameState {
             wo.put("essenceRefines", w.essenceRefines)
             wo.put("lifetimeCoins", safe(w.lifetimeCoins))
             wo.put("masteryStars", w.masteryStars)
+            wo.put("everCleared", w.everCleared)
             wo.put("lastTick", w.lastTick)
             wo.put("units", JSONArray(w.unitLevels.toList()))
             wo.put("buildings", JSONArray(w.buildingLevels.toList()))
@@ -538,6 +547,7 @@ class GameState {
                     w.essenceRefines = wo.optInt("essenceRefines", 0).coerceAtLeast(0)
                     w.lifetimeCoins = wo.optDouble("lifetimeCoins", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
                     w.masteryStars = wo.optInt("masteryStars", 0).coerceIn(0, 1_000_000)
+                    w.everCleared = wo.optBoolean("everCleared", w.territories >= Defs.TERRITORIES)
                     w.lastTick = wo.optLong("lastTick", now)
                     readInts(wo.optJSONArray("units"), w.unitLevels)
                     readInts(wo.optJSONArray("buildings"), w.buildingLevels)
