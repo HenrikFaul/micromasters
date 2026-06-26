@@ -55,6 +55,17 @@ class WorldDef(
 
 class QuestDef(val nameRes: Int, val emoji: String, val target: Long, val rewardGems: Int)
 
+enum class ResearchBranch { INDUSTRY, LOGISTICS, SCIENCE, EXPANSION }
+
+class ResearchDef(
+    val branch: ResearchBranch,
+    val nameRes: Int,
+    val descRes: Int,
+    val emoji: String,
+    val branchMult: Double,
+    val maxLevel: Int = 25
+)
+
 object Defs {
     const val TERRITORIES = 10
 
@@ -78,6 +89,18 @@ object Defs {
         BoostDef("fill", R.string.boost_fill, R.string.boost_fill_desc, "💧", BoostKind.FILL, gemCost = 8),
         BoostDef("ad", R.string.boost_ad, R.string.boost_ad_desc, "🎬", BoostKind.AD, gemCost = 0, durationMs = 5 * 60_000L, multiplier = 1.0)
     )
+
+    // Account-wide Research Tree (GDD §6.3). Each level multiplies ALL worlds globally.
+    // Order MUST match ResearchBranch.ordinal. Emoji are Unicode <= 7.
+    val RESEARCH = listOf(
+        ResearchDef(ResearchBranch.INDUSTRY, R.string.res_industry, R.string.res_industry_desc, "🏭", branchMult = 0.15),
+        ResearchDef(ResearchBranch.LOGISTICS, R.string.res_logistics, R.string.res_logistics_desc, "🚚", branchMult = 0.05),
+        ResearchDef(ResearchBranch.SCIENCE, R.string.res_science, R.string.res_science_desc, "🔬", branchMult = 0.05),
+        ResearchDef(ResearchBranch.EXPANSION, R.string.res_expansion, R.string.res_expansion_desc, "🗺️", branchMult = 0.05)
+    )
+
+    /** Cores granted for clearing all 10 territories of a world (mastery faucet). */
+    fun coreReward(id: String): Int = 2 + worldIndex(id)
 
     // Colors are plain ARGB ints so the canvas view can use them directly.
     val WORLDS = listOf(

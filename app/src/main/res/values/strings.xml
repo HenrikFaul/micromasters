@@ -136,4 +136,40 @@
     <string name="offline_away_fmt">%1$s voltál távol</string>
     <string name="offline_double">×2 📺</string>
     <string name="offline_ok">RENDBEN</string>
+
+    <!-- Research Tree -->
+    <string name="research_hub_fmt">🔬 Kutatás · %1$s 💠</string>
+    <string name="research_title">🔬 Kutatás</string>
+    <string name="research_cores_fmt">Mag: %1$s 💠</string>
+    <string name="res_industry">Ipar</string>
+    <string name="res_industry_desc">Globális termelés</string>
+    <string name="res_logistics">Logisztika</string>
+    <string name="res_logistics_desc">Offline hatékonyság</string>
+    <string name="res_science">Tudomány</string>
+    <string name="res_science_desc">Gyémánt bónusz</string>
+    <string name="res_expansion">Terjeszkedés</string>
+    <string name="res_expansion_desc">Olcsóbb hódítás</string>
+    <string name="not_enough_cores">Nincs elég Mag!</string>
+
+    <!-- Prestige / Re-Miniaturize -->
+    <string name="prestige">⭐ Újraminiatürizálás</string>
+    <string name="prestige_title">Újraminiatürizálás</string>
+    <string name="prestige_fmt">⭐ %1$d · +%2$d</string>
+    <string name="prestige_locked">Még nincs begyűjthető csillag.</string>
+    <string name="prestige_confirm">Visszaállítod a(z) %1$s világot %2$d ⭐ csillagért? Az egységek, épületek és területek lenullázódnak — ez nem vonható vissza!</string>
+    <string name="prestige_after">Csillagok ezután: %1$d</string>
+    <string name="prestige_do">Megteszem</string>
+
+    <!-- Collection / Museum -->
+    <string name="collection_title">🏛️ Gyűjtemény</string>
+    <string name="collection_owned">MEGVAN</string>
+    <string name="collection_locked">ZÁRVA</string>
+    <string name="collection_badges_fmt">Világ-kitűzők · %1$d/%2$d</string>
+    <string name="collection_mastered">Mesteri! 🏆 10/10</string>
+    <string name="collection_skins_fmt">Egység-kinézetek · %1$d/%2$d</string>
+    <string name="collection_set_title">Készlet-bónusz</string>
+    <string name="collection_set_name">Nagy Gyűjtő</string>
+    <string name="collection_set_desc">Minden világ mesteri + arany kinézet · örök bónusz</string>
+    <string name="collection_claim">BEGYŰJT</string>
+    <string name="collection_claimed">Nagy Gyűjtő! Örök termelésbónusz 🏆</string>
 </resources>

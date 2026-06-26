@@ -22,9 +22,11 @@ class WorldSelectActivity : AppCompatActivity() {
 
         b.btnShop.setOnClickListener { Dialogs.showShop(this) { refresh() } }
         b.eventBanner.setOnClickListener { Dialogs.showShop(this) { refresh() } }
+        b.researchCard.setOnClickListener { Dialogs.showResearch(this) { refresh() } }
         b.navWorlds.setOnClickListener { refresh() }
         b.navQuests.setOnClickListener { Dialogs.showQuests(this) { refresh() } }
         b.navFriends.setOnClickListener { Dialogs.showLeaderboard(this) }
+        b.navFriends.setOnLongClickListener { Dialogs.showCollection(this) { refresh() }; true }
         b.navSettings.setOnClickListener { Dialogs.showSettings(this) { refresh() } }
     }
 
@@ -49,6 +51,7 @@ class WorldSelectActivity : AppCompatActivity() {
         val tz = java.util.TimeZone.getDefault()
         val msToMidnight = 86_400_000L - (now + tz.getOffset(now)) % 86_400_000L
         b.eventText.text = getString(R.string.event_fmt, Format.duration(msToMidnight))
+        b.researchText.text = getString(R.string.research_hub_fmt, Format.short(s.cores))
         buildWorldList(s)
     }
 

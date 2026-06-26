@@ -346,6 +346,178 @@ object Dialogs {
         dialog.show()
     }
 
+    // ---------------------------------------------------------------- research
+
+    fun showResearch(act: Activity, onChange: () -> Unit) {
+        val s = Game.get(act)
+        val pad = dp(act, 18)
+        val root = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_card)
+            setPadding(pad, pad, pad, pad)
+        }
+        val header = TextView(act).apply {
+            setTextColor(WHITE)
+            textSize = 20f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        root.addView(header)
+        val sub = TextView(act).apply {
+            setTextColor(ContextCompat.getColor(act, R.color.purple))
+            textSize = 14f
+            setPadding(0, dp(act, 4), 0, 0)
+        }
+        root.addView(sub)
+        val listView = LinearLayout(act).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(listView)
+        val dialog = AlertDialog.Builder(act).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        fun rebuild() {
+            header.text = act.getString(R.string.research_title)
+            sub.text = act.getString(R.string.research_cores_fmt, Format.short(s.cores))
+            listView.removeAllViews()
+            for (i in Defs.RESEARCH.indices) {
+                val d = Defs.RESEARCH[i]
+                val lvl = s.research[i]
+                val r = ItemUpgradeBinding.inflate(act.layoutInflater, listView, false)
+                r.upEmoji.text = d.emoji
+                r.upName.text = act.getString(d.nameRes)
+                val bonusPct = (d.branchMult * lvl * 100).toInt()
+                r.upSub.text = act.getString(R.string.level_fmt, lvl) + " · " +
+                    act.getString(d.descRes) + " (+" + bonusPct + "%)"
+                r.upBtn.setIconResource(R.drawable.ic_core)
+                r.upBtn.backgroundTintList = csl(act, R.color.purple)
+                r.upBtn.setTextColor(WHITE)
+                if (s.researchMaxed(i)) {
+                    r.upBtn.text = act.getString(R.string.daily_done)
+                    r.upBtn.icon = null
+                    r.upBtn.isEnabled = false
+                    r.upBtn.backgroundTintList = csl(act, R.color.panel_light)
+                    r.upBtn.setTextColor(DIM)
+                } else {
+                    r.upBtn.text = Format.short(s.researchCost(i))
+                    r.upBtn.setOnClickListener {
+                        if (s.buyResearch(i)) {
+                            it.pop(); Game.save(act); onChange(); rebuild()
+                        } else Toast.makeText(act, R.string.not_enough_cores, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                lp.topMargin = dp(act, 12)
+                r.root.layoutParams = lp
+                listView.addView(r.root)
+            }
+        }
+        rebuild()
+        root.addView(android.widget.Button(act).apply {
+            text = act.getString(R.string.close)
+            setBackgroundColor(0x00000000)
+            setTextColor(DIM)
+            setPadding(0, dp(act, 6), 0, 0)
+            setOnClickListener { dialog.dismiss() }
+        })
+        dialog.show()
+    }
+
+    // -------------------------------------------------------------- collection
+
+    fun showCollection(act: Activity, onChange: () -> Unit) {
+        val s = Game.get(act)
+        val pad = dp(act, 18)
+        val root = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_card)
+            setPadding(pad, pad, pad, pad)
+        }
+        root.addView(TextView(act).apply {
+            text = act.getString(R.string.collection_title)
+            setTextColor(WHITE)
+            textSize = 20f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        })
+        val listView = LinearLayout(act).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(listView)
+        val dialog = AlertDialog.Builder(act).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        fun header(text: String) {
+            listView.addView(TextView(act).apply {
+                this.text = text
+                setTextColor(ContextCompat.getColor(act, R.color.gold))
+                textSize = 13f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setPadding(0, dp(act, 14), 0, dp(act, 2))
+            })
+        }
+        fun row(emoji: String, name: String, sub: String, done: Boolean): ItemUpgradeBinding {
+            val r = ItemUpgradeBinding.inflate(act.layoutInflater, listView, false)
+            r.upEmoji.text = emoji
+            r.upName.text = name
+            r.upSub.text = sub
+            r.upBtn.icon = null
+            r.upBtn.isEnabled = false
+            r.upBtn.text = if (done) act.getString(R.string.collection_owned) else act.getString(R.string.collection_locked)
+            r.upBtn.backgroundTintList = csl(act, if (done) R.color.green else R.color.panel_light)
+            r.upBtn.setTextColor(if (done) DARK_GREEN else DIM)
+            if (!done) r.root.alpha = 0.55f
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            lp.topMargin = dp(act, 10)
+            r.root.layoutParams = lp
+            return r
+        }
+        fun render() {
+            listView.removeAllViews()
+            header(act.getString(R.string.collection_badges_fmt, s.masteredCount(), Defs.WORLDS.size))
+            for (def in Defs.WORLDS) {
+                val ws = s.world(def.id)
+                val mastered = s.worldMastered(def.id)
+                val sub = if (mastered) act.getString(R.string.collection_mastered)
+                    else act.getString(R.string.progress_fmt, ws.territories, Defs.TERRITORIES)
+                listView.addView(row(def.emoji, act.getString(def.nameRes), sub, mastered).root)
+            }
+            header(act.getString(R.string.collection_skins_fmt, s.skinsOwned(), s.skinsTotal()))
+            val skinRow = row("✨", act.getString(R.string.shop_skin), act.getString(R.string.shop_skin_desc), s.skinGold)
+            if (!s.skinGold) {
+                skinRow.root.alpha = 1f
+                skinRow.upBtn.isEnabled = true
+                skinRow.upBtn.text = act.getString(R.string.get)
+                skinRow.upBtn.backgroundTintList = csl(act, R.color.gold)
+                skinRow.upBtn.setTextColor(DARK_GOLD)
+                skinRow.upBtn.setOnClickListener { it.pop(); dialog.dismiss(); showShop(act, onChange) }
+            }
+            listView.addView(skinRow.root)
+            header(act.getString(R.string.collection_set_title))
+            val setRow = row("🏆", act.getString(R.string.collection_set_name), act.getString(R.string.collection_set_desc), s.collectionBonus)
+            if (!s.collectionBonus && s.collectionClaimable()) {
+                setRow.root.alpha = 1f
+                setRow.upBtn.isEnabled = true
+                setRow.upBtn.text = act.getString(R.string.collection_claim)
+                setRow.upBtn.backgroundTintList = csl(act, R.color.gold)
+                setRow.upBtn.setTextColor(DARK_GOLD)
+                setRow.upBtn.setOnClickListener {
+                    if (s.claimCollection()) {
+                        it.pop(); Game.save(act); onChange()
+                        Toast.makeText(act, act.getString(R.string.collection_claimed), Toast.LENGTH_SHORT).show()
+                        render()
+                    }
+                }
+            }
+            listView.addView(setRow.root)
+        }
+        render()
+        root.addView(android.widget.Button(act).apply {
+            text = act.getString(R.string.close)
+            setBackgroundColor(0x00000000)
+            setTextColor(DIM)
+            setPadding(0, dp(act, 8), 0, 0)
+            setOnClickListener { dialog.dismiss() }
+        })
+        dialog.show()
+    }
+
     // -------------------------------------------------------------------- shop
 
     fun showShop(act: Activity, onChange: () -> Unit) {
@@ -471,6 +643,9 @@ object Dialogs {
             v.mapEssence.text = def.essenceEmoji + " " + act.getString(def.essenceName) + ": " + Format.short(ws.essence)
             v.btnRefine.text = act.getString(R.string.refine_fmt, Format.short(s.refineCost(ws))) + " " + def.essenceEmoji
             v.btnRefine.isEnabled = ws.essence >= s.refineCost(ws)
+            val gain = s.prestigeStarsAvailable(s.activeWorld)
+            v.btnPrestige.text = act.getString(R.string.prestige_fmt, ws.masteryStars, gain)
+            v.btnPrestige.isEnabled = gain >= 1
             if (ws.territories >= Defs.TERRITORIES) {
                 v.mapHint.text = act.getString(R.string.all_conquered)
                 v.btnConquer.isEnabled = false
@@ -507,6 +682,32 @@ object Dialogs {
             } else {
                 Toast.makeText(act, R.string.not_enough_essence, Toast.LENGTH_SHORT).show()
             }
+        }
+        v.btnPrestige.setOnClickListener {
+            val g = s.prestigeStarsAvailable(s.activeWorld)
+            if (g < 1) {
+                Toast.makeText(act, R.string.prestige_locked, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val after = s.active().masteryStars + g
+            val mult = String.format(java.util.Locale.US, "  (×%.2f)", 1.0 + GameState.PRESTIGE_MULT_PER_STAR * after)
+            val msg = act.getString(R.string.prestige_confirm, act.getString(def.nameRes), g) + "\n\n" +
+                act.getString(R.string.prestige_after, after) + mult
+            AlertDialog.Builder(act)
+                .setTitle(R.string.prestige_title)
+                .setMessage(msg)
+                .setNegativeButton(R.string.close, null)
+                .setPositiveButton(R.string.prestige_do) { _, _ ->
+                    val got = s.prestige(System.currentTimeMillis())
+                    if (got > 0) {
+                        it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        Game.save(act)
+                        onChange()
+                        Toast.makeText(act, "+$got ⭐", Toast.LENGTH_LONG).show()
+                        refresh()
+                    }
+                }
+                .show()
         }
         v.btnMapClose.setOnClickListener { dialog.dismiss() }
         refresh()

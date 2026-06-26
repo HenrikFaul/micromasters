@@ -19,7 +19,9 @@ class WorldState(
     var gemPending: Double = 0.0,
     var essence: Double = 0.0,
     var essenceRefines: Int = 0,
-    var lastTick: Long = 0L
+    var lastTick: Long = 0L,
+    var lifetimeCoins: Double = 0.0,
+    var masteryStars: Int = 0
 )
 
 /** Full save-game and the simulation rules that operate on it. */
@@ -43,6 +45,12 @@ class GameState {
     var qConquered: Int = 0
     val qClaimed = BooleanArray(3)
 
+    // Meta progression (account-wide).
+    var cores: Long = 0
+    val research = IntArray(Defs.RESEARCH.size)
+    var collectionBonus: Boolean = false
+    private val COLLECTION_BONUS = 0.05
+
     fun world(id: String): WorldState = worlds.getValue(id)
     fun active(): WorldState = world(activeWorld)
 
@@ -59,7 +67,7 @@ class GameState {
     fun territoryBonus(ws: WorldState): Double = 1.0 + 0.05 * ws.territories
 
     /** Lab building turns into a slow gem faucet (gems per second). */
-    fun labGemsPerSec(ws: WorldState): Double = ws.buildingLevels[2] * 0.5 / 3600.0
+    fun labGemsPerSec(ws: WorldState): Double = ws.buildingLevels[2] * 0.5 / 3600.0 * labGemBonus()
 
     /** Refinery building strongly accelerates world Essence. */
     fun refineryMult(ws: WorldState): Double = 1.0 + 0.5 * ws.buildingLevels[3]
@@ -67,6 +75,93 @@ class GameState {
     /** World-specific Essence produced per second (slow; Refinery multiplies it). */
     fun essencePerSec(ws: WorldState): Double =
         unitsBaseProd(ws) * 0.04 * refineryMult(ws) * territoryBonus(ws)
+
+    // ---- research (account-wide global multiplier) ----------------------
+
+    fun researchProdMult(): Double {
+        var m = 1.0
+        for (i in Defs.RESEARCH.indices) m *= 1.0 + Defs.RESEARCH[i].branchMult * research[i]
+        return if (m.isFinite() && m >= 1.0) m else 1.0
+    }
+
+    fun researchCost(branch: Int): Long {
+        val owned = research[branch].coerceAtMost(200)
+        val raw = 1.6.pow(owned.toDouble())
+        return if (!raw.isFinite() || raw >= 9.0e18) Long.MAX_VALUE else kotlin.math.ceil(raw).toLong()
+    }
+
+    fun researchMaxed(branch: Int): Boolean = research[branch] >= Defs.RESEARCH[branch].maxLevel
+
+    fun buyResearch(branch: Int): Boolean {
+        if (researchMaxed(branch)) return false
+        val cost = researchCost(branch)
+        if (cores < cost) return false
+        cores -= cost
+        research[branch] += 1
+        return true
+    }
+
+    fun offlineEff(): Double = (0.5 + 0.02 * research[ResearchBranch.LOGISTICS.ordinal]).coerceAtMost(1.0)
+    fun offlineCapHours(): Double = (8.0 + research[ResearchBranch.LOGISTICS.ordinal]).coerceAtMost(24.0)
+    fun labGemBonus(): Double = 1.0 + 0.05 * research[ResearchBranch.SCIENCE.ordinal]
+    fun expansionDiscount(): Double = (1.0 - 0.03 * research[ResearchBranch.EXPANSION.ordinal]).coerceAtLeast(0.4)
+
+    // ---- prestige (per-world Re-Miniaturize) ----------------------------
+
+    fun prestigeMult(ws: WorldState): Double = 1.0 + PRESTIGE_MULT_PER_STAR * ws.masteryStars
+
+    fun totalStarsFor(lifetimeCoins: Double): Int {
+        if (!lifetimeCoins.isFinite() || lifetimeCoins <= 0.0) return 0
+        val raw = STAR_K * kotlin.math.sqrt(lifetimeCoins / STAR_SCALE)
+        return if (!raw.isFinite()) 0 else floor(raw).toLong().coerceIn(0L, 1_000_000L).toInt()
+    }
+
+    fun prestigeStarsAvailable(id: String): Int {
+        val ws = world(id)
+        return (totalStarsFor(ws.lifetimeCoins) - ws.masteryStars).coerceAtLeast(0)
+    }
+
+    fun canPrestige(id: String): Boolean = prestigeStarsAvailable(id) >= 1
+
+    fun prestige(now: Long): Int {
+        val id = activeWorld
+        val ws = world(id)
+        val gain = prestigeStarsAvailable(id)
+        if (gain < 1) return 0
+        ws.masteryStars += gain
+        for (i in ws.unitLevels.indices) ws.unitLevels[i] = 0
+        for (i in ws.buildingLevels.indices) ws.buildingLevels[i] = 0
+        ws.territories = 0
+        ws.clearRewardClaimed = false
+        ws.pending = 0.0
+        ws.gemPending = 0.0
+        ws.essence = 0.0
+        ws.essenceRefines = 0
+        ws.lastTick = now
+        if (id == "kitchen") { ws.unitLevels[0] = 3; ws.territories = 1 }
+        return gain
+    }
+
+    private fun creditLifetime(ws: WorldState, amount: Long) {
+        if (amount <= 0L) return
+        val v = ws.lifetimeCoins + amount
+        ws.lifetimeCoins = if (v.isFinite()) v else ws.lifetimeCoins
+    }
+
+    // ---- collection / museum --------------------------------------------
+
+    fun worldMastered(id: String): Boolean = world(id).territories >= Defs.TERRITORIES
+    fun masteredCount(): Int = Defs.WORLDS.count { worldMastered(it.id) }
+    fun skinsOwned(): Int = if (skinGold) 1 else 0
+    fun skinsTotal(): Int = 1
+    fun collectionComplete(): Boolean = skinGold && masteredCount() >= Defs.WORLDS.size
+    fun collectionClaimable(): Boolean = collectionComplete() && !collectionBonus
+    fun collectionMult(): Double = if (collectionBonus) 1.0 + COLLECTION_BONUS else 1.0
+    fun claimCollection(): Boolean {
+        if (!collectionClaimable()) return false
+        collectionBonus = true
+        return true
+    }
 
     fun capacity(id: String): Double {
         val def = Defs.world(id)
@@ -78,7 +173,7 @@ class GameState {
         val def = Defs.world(id)
         val ws = world(id)
         return unitsBaseProd(ws) * def.prodMult * workshopMult(ws) * territoryBonus(ws) *
-            (1.0 + 0.02 * ws.essenceRefines)
+            (1.0 + 0.02 * ws.essenceRefines) * researchProdMult() * prestigeMult(ws) * collectionMult()
     }
 
     fun boostActive(now: Long): Boolean = now < boostExpiry && boostMult > 1.0
@@ -108,7 +203,7 @@ class GameState {
         val def = Defs.world(id)
         val ws = world(id)
         // Gentle hyper-casual ramp; last tile still dominates (1.4^9 ~= 20x base).
-        return growthCost(def.territoryBaseCost, 1.4, ws.territories)
+        return floor(growthCost(def.territoryBaseCost, 1.4, ws.territories) * expansionDiscount()).toLong()
     }
 
     // ---- simulation -----------------------------------------------------
@@ -151,14 +246,15 @@ class GameState {
         val ws = active()
         // Keep lastTick coherent so the live ticker doesn't double-count.
         for (w in worlds.values) w.lastTick = now
-        val awaySec = min(awayMs / 1000.0, 8.0 * 3600.0)
+        val awaySec = min(awayMs / 1000.0, offlineCapHours() * 3600.0)
         if (awaySec <= 0.0) return OfflineResult(0L, 0L, awayMs)
-        val gainedD = effectiveProdPerSec(activeWorld, now) * awaySec * 0.5
+        val gainedD = effectiveProdPerSec(activeWorld, now) * awaySec * offlineEff()
         val gemD = labGemsPerSec(ws) * awaySec
         val c = if (gainedD.isFinite() && gainedD >= 1.0) floor(gainedD).toLong() else 0L
         val g = if (gemD.isFinite() && gemD >= 1.0) floor(gemD).toLong() else 0L
         coins += c
         gems += g
+        creditLifetime(ws, c)
         return OfflineResult(c, g, awayMs)
     }
 
@@ -169,6 +265,7 @@ class GameState {
             coins += amount
             ws.pending -= amount
             qCollected += amount
+            creditLifetime(ws, amount)
         }
         // Lab gems are harvested together with coins.
         val g = floor(ws.gemPending).toLong()
@@ -212,7 +309,7 @@ class GameState {
         return true
     }
 
-    class ConquerResult(val ok: Boolean, val clearedWorld: Boolean, val gemReward: Int)
+    class ConquerResult(val ok: Boolean, val clearedWorld: Boolean, val gemReward: Int, val coreReward: Int = 0)
 
     fun conquer(): ConquerResult {
         val def = Defs.world(activeWorld)
@@ -225,13 +322,16 @@ class GameState {
         qConquered += 1
         var cleared = false
         var reward = 0
+        var core = 0
         if (ws.territories >= Defs.TERRITORIES && !ws.clearRewardClaimed) {
             ws.clearRewardClaimed = true
             cleared = true
             reward = def.clearReward
             gems += reward
+            core = Defs.coreReward(activeWorld)
+            cores += core
         }
-        return ConquerResult(true, cleared, reward)
+        return ConquerResult(true, cleared, reward, core)
     }
 
     fun unlockWorld(id: String): Boolean {
@@ -352,6 +452,9 @@ class GameState {
         o.put("qUpgrades", qUpgrades)
         o.put("qConquered", qConquered)
         o.put("qClaimed", JSONArray(listOf(qClaimed[0], qClaimed[1], qClaimed[2])))
+        o.put("cores", cores)
+        o.put("research", JSONArray(research.toList()))
+        o.put("collectionBonus", collectionBonus)
         val ws = JSONObject()
         for ((id, w) in worlds) {
             val wo = JSONObject()
@@ -362,6 +465,8 @@ class GameState {
             wo.put("gemPending", safe(w.gemPending))
             wo.put("essence", safe(w.essence))
             wo.put("essenceRefines", w.essenceRefines)
+            wo.put("lifetimeCoins", safe(w.lifetimeCoins))
+            wo.put("masteryStars", w.masteryStars)
             wo.put("lastTick", w.lastTick)
             wo.put("units", JSONArray(w.unitLevels.toList()))
             wo.put("buildings", JSONArray(w.buildingLevels.toList()))
@@ -373,6 +478,9 @@ class GameState {
 
     companion object {
         const val SCHEMA = 2
+        const val STAR_K = 1.0
+        const val STAR_SCALE = 10_000.0
+        const val PRESTIGE_MULT_PER_STAR = 0.10
 
         fun newGame(now: Long): GameState {
             val s = GameState()
@@ -412,6 +520,9 @@ class GameState {
             o.optJSONArray("qClaimed")?.let { qc ->
                 for (i in 0 until min(qc.length(), s.qClaimed.size)) s.qClaimed[i] = qc.optBoolean(i, false)
             }
+            s.cores = o.optLong("cores", 0L).coerceAtLeast(0L)
+            readInts(o.optJSONArray("research"), s.research)
+            s.collectionBonus = o.optBoolean("collectionBonus", false)
             val ws = o.optJSONObject("worlds")
             for (def in Defs.WORLDS) {
                 val w = WorldState(unlocked = def.unlockedByDefault)
@@ -425,6 +536,8 @@ class GameState {
                     w.gemPending = wo.optDouble("gemPending", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
                     w.essence = wo.optDouble("essence", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
                     w.essenceRefines = wo.optInt("essenceRefines", 0).coerceAtLeast(0)
+                    w.lifetimeCoins = wo.optDouble("lifetimeCoins", 0.0).let { if (it.isFinite() && it >= 0.0) it else 0.0 }
+                    w.masteryStars = wo.optInt("masteryStars", 0).coerceIn(0, 1_000_000)
                     w.lastTick = wo.optLong("lastTick", now)
                     readInts(wo.optJSONArray("units"), w.unitLevels)
                     readInts(wo.optJSONArray("buildings"), w.buildingLevels)
