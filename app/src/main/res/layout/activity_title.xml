@@ -78,7 +78,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="6dp"
             android:text="@string/title_login"
-            android:textColor="@color/text_dim" />
+            android:textColor="@color/text_primary" />
 
     </LinearLayout>
 </FrameLayout>
