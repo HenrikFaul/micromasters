@@ -22,6 +22,9 @@
     <string name="world_bathroom">Fürdőszoba</string>
     <string name="world_garden">Kert</string>
     <string name="world_spaceship">Űrhajó</string>
+    <string name="world_workshop">Műhely</string>
+    <string name="world_fridge">Hűtő</string>
+    <string name="world_toybox">Játékdoboz</string>
 
     <!-- Game screen -->
     <string name="collect">GYŰJTÉS</string>
@@ -127,6 +130,9 @@
     <string name="essence_bathroom">Buborék</string>
     <string name="essence_garden">Pollen</string>
     <string name="essence_spaceship">Plazma</string>
+    <string name="essence_workshop">Alkatrész</string>
+    <string name="essence_fridge">Jégkristály</string>
+    <string name="essence_toybox">Csillám</string>
     <string name="refine">Finomítás</string>
     <string name="refine_fmt">Finomítás · %1$s</string>
     <string name="not_enough_essence">Nincs elég eszencia!</string>

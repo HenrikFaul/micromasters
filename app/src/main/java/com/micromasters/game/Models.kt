@@ -139,6 +139,33 @@ object Defs {
             ground = 0xFF243056.toInt(), accent = 0xFF9FB8FF.toInt(),
             worker = "👽", nodes = arrayOf("🔩", "🔋", "💾", "⚙️", "🛰️"),
             essenceName = R.string.essence_spaceship, essenceEmoji = "⚛️"
+        ),
+        WorldDef(
+            "workshop", R.string.world_workshop, "🔧",
+            prodMult = 1500.0, baseCap = 600000.0, territoryBaseCost = 900000.0,
+            unlockGems = 800, unlockedByDefault = false, clearReward = 1500,
+            skyTop = 0xFF8A8F99.toInt(), skyBottom = 0xFF34383F.toInt(),
+            ground = 0xFF55504A.toInt(), accent = 0xFFF2A33C.toInt(),
+            worker = "🐝", nodes = arrayOf("🔩", "🔧", "🔋", "⚙️", "📎"),
+            essenceName = R.string.essence_workshop, essenceEmoji = "🔩"
+        ),
+        WorldDef(
+            "fridge", R.string.world_fridge, "❄️",
+            prodMult = 7000.0, baseCap = 3000000.0, territoryBaseCost = 4500000.0,
+            unlockGems = 1200, unlockedByDefault = false, clearReward = 2500,
+            skyTop = 0xFFBFE8F5.toInt(), skyBottom = 0xFF235E78.toInt(),
+            ground = 0xFF3C7E96.toInt(), accent = 0xFFE8FAFF.toInt(),
+            worker = "🐧", nodes = arrayOf("❄️", "💧", "🔵", "💎", "🍦"),
+            essenceName = R.string.essence_fridge, essenceEmoji = "❄️"
+        ),
+        WorldDef(
+            "toybox", R.string.world_toybox, "🎲",
+            prodMult = 30000.0, baseCap = 12000000.0, territoryBaseCost = 20000000.0,
+            unlockGems = 1800, unlockedByDefault = false, clearReward = 4000,
+            skyTop = 0xFFFFD24D.toInt(), skyBottom = 0xFFC23A28.toInt(),
+            ground = 0xFF3A7BD5.toInt(), accent = 0xFFFFF0A0.toInt(),
+            worker = "🐢", nodes = arrayOf("🎲", "🎈", "🎯", "🎁", "🔔"),
+            essenceName = R.string.essence_toybox, essenceEmoji = "✨"
         )
     )
 
