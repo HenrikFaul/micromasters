@@ -46,6 +46,10 @@
     <string name="hire">Felvétel</string>
     <string name="not_enough">Nincs elég érme!</string>
     <string name="not_enough_gems">Nincs elég gyémánt!</string>
+    <!-- Bulk-buy / smart economy -->
+    <string name="qty_max">Max</string>
+    <string name="roi_payback_fmt">megtérül %1$s</string>
+    <string name="bought_fmt">+%1$d szint</string>
 
     <!-- Unit names -->
     <string name="unit_miner">Bányász</string>
@@ -178,4 +182,53 @@
     <string name="collection_set_desc">Minden világ mesteri + arany kinézet · örök bónusz</string>
     <string name="collection_claim">BEGYŰJT</string>
     <string name="collection_claimed">Nagy Gyűjtő! Örök termelésbónusz 🏆</string>
+
+    <!-- Hub locked-world guidance -->
+    <string name="locked_need_gems">Zárva · még %1$s 💎 kell</string>
+    <string name="locked_affordable">Zárva · megengedheted!</string>
+
+    <!-- Next-goal guidance card -->
+    <string name="goal_card_title">MIT TEGYEK MOST?</string>
+    <string name="goal_go">Mehet</string>
+    <string name="goal_claim_title">Jutalom vár!</string>
+    <string name="goal_claim_daily">Itt a napi jutalmad — vedd át!</string>
+    <string name="goal_claim_quest">Teljesített feladat — gyűjtsd be a 💎-ot!</string>
+    <string name="goal_claim_research">Van elég Magod egy kutatásra!</string>
+    <string name="goal_claim_collection">Készlet-bónusz átvehető a Gyűjteményben!</string>
+    <string name="goal_collect_title">Tele a raktár!</string>
+    <string name="goal_collect_text">A(z) %1$s raktára megtelt — gyűjts be!</string>
+    <string name="goal_prestige_title">Ideje újraminiatürizálni!</string>
+    <string name="goal_prestige_text">%1$s: +%2$d ⭐ vár — örök termelésbónusz.</string>
+    <string name="goal_upgrade_title">Fejleszd a termelést</string>
+    <string name="goal_upgrade_text">%1$s %2$s · %3$s 💰</string>
+    <string name="goal_conquer_title">Hódíts új területet</string>
+    <string name="goal_conquer_text">%1$d/%2$d terület · %3$s 💰</string>
+    <string name="goal_unlock_title">Új világ vár</string>
+    <string name="goal_unlock_ready">Oldd fel: %1$s · %2$d 💎</string>
+    <string name="goal_unlock_save">Gyűjts %2$d 💎-ot a(z) %1$s feloldásához</string>
+    <string name="goal_idle_title">Termelj tovább</string>
+    <string name="goal_idle_text">Gyűjts érmét a(z) %1$s világban a következő lépéshez.</string>
+
+    <!-- Map hints -->
+    <string name="map_hint_conquer_ready">Van elég érméd — hódíts most!</string>
+    <string name="map_hint_prestige">Kész a világ! Újraminiatürizálj +%1$d ⭐-ért.</string>
+
+    <!-- Milestone toasts -->
+    <string name="milestone_first_clear">Első világ teljesítve! 🏆 Folytasd a következővel!</string>
+    <string name="milestone_first_prestige">Újraminiatürizálva! ⭐ A bónusz örökre megmarad.</string>
+    <string name="milestone_coins">Mérföldkő: %1$s érme összegyűjtve! 🎉</string>
+
+    <!-- Active play: combo / crit / golden -->
+    <string name="crit_pop">KRITIKUS! ×2</string>
+    <string name="golden_pop">Arany csomópont! Termelési bónusz ⭐</string>
+    <string name="combo_hint">Gyűjts gyorsan a kombó bónuszért!</string>
+
+    <!-- Per-world signature twist labels -->
+    <string name="twist_kitchen">Friss adag</string>
+    <string name="twist_bathroom">Öblítés</string>
+    <string name="twist_garden">Virágzás</string>
+    <string name="twist_spaceship">Ugrás</string>
+    <string name="twist_workshop">Futószalag</string>
+    <string name="twist_fridge">Mélyfagyasztás</string>
+    <string name="twist_toybox">Felhúzós</string>
 </resources>

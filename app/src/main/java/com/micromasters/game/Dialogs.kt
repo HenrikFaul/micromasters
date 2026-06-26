@@ -85,6 +85,43 @@ object Dialogs {
             return r
         }
 
+        var qtyMode = 0  // 0 = ×1, 1 = ×10, 2 = Max  (transient UI state, never saved)
+        val qtyLabels = listOf("×1", "×10", act.getString(R.string.qty_max))
+
+        fun qtyFor(maxN: Int): Int = when (qtyMode) {
+            0 -> 1
+            1 -> 10
+            else -> maxN.coerceAtLeast(1)
+        }
+
+        fun paybackStr(sec: Double): String = when {
+            !sec.isFinite() || sec > 86_400.0 -> ""
+            sec < 60.0 -> "${sec.toLong()} mp"
+            sec < 3600.0 -> "${(sec / 60).toLong()} p"
+            else -> "${(sec / 3600).toLong()} ó"
+        }
+
+        fun roiLine(cost: Long, dProd: Double): String {
+            if (dProd <= 0.0 || cost <= 0L) return ""
+            val str = paybackStr(cost / dProd)
+            return if (str.isEmpty()) "" else "  · " + act.getString(R.string.roi_payback_fmt, str)
+        }
+
+        // index of the affordable unit/building row with the best (lowest) payback → gets the ⭐
+        fun bestBuyIndex(ws: WorldState): Int {
+            var best = -1; var bestPb = Double.MAX_VALUE
+            val count = if (seg == 0) Defs.UNITS.size else Defs.BUILDINGS.size
+            for (i in 0 until count) {
+                val cost = if (seg == 0) s.unitCost(ws, i) else s.buildingCost(ws, i)
+                if (cost == Long.MAX_VALUE || s.coins < cost) continue
+                val dProd = if (seg == 0) s.unitProdDelta(ws, i) else s.buildingProdDelta(ws, i)
+                if (dProd <= 0.0) continue
+                val pb = cost / dProd
+                if (pb < bestPb) { bestPb = pb; best = i }
+            }
+            return best
+        }
+
         fun rebuild() {
             v.upgradeList.removeAllViews()
             val now = System.currentTimeMillis()
@@ -92,41 +129,101 @@ object Dialogs {
             val ws = s.active()
             val def = Defs.world(s.activeWorld)
 
+            // signature-twist strategy hint for the active world
+            if (def.twist.kind != TwistKind.NONE) {
+                val frac = s.twistBonusFrac(ws, def)
+                v.upgradeList.addView(TextView(act).apply {
+                    text = def.twist.emoji + "  " + act.getString(def.twist.nameRes) +
+                        "  " + String.format(java.util.Locale.US, "×%.2f", 1.0 + frac)
+                    setTextColor(csl(act, R.color.gold))
+                    textSize = 13f
+                    setPadding(0, dp(act, 2), 0, dp(act, 10))
+                })
+            }
+
+            // bulk-buy quantity toggle (Units / Buildings only)
+            if (seg == 0 || seg == 1) {
+                val row = LinearLayout(act).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, dp(act, 40)
+                    ).apply { bottomMargin = dp(act, 10) }
+                }
+                for (m in 0..2) {
+                    val sel = m == qtyMode
+                    val tb = mbtn(act, qtyLabels[m], if (sel) R.color.gold else R.color.panel_light, if (sel) DARK_GOLD else DIM)
+                    tb.textSize = 13f
+                    val lp = LinearLayout.LayoutParams(0, dp(act, 40), 1f)
+                    if (m < 2) lp.marginEnd = dp(act, 6)
+                    tb.setOnClickListener { qtyMode = m; rebuild() }
+                    row.addView(tb, lp)
+                }
+                v.upgradeList.addView(row)
+            }
+
             when (seg) {
-                0 -> for (i in Defs.UNITS.indices) {
-                    val d = Defs.UNITS[i]
-                    val lvl = ws.unitLevels[i]
-                    val contrib = d.baseProd * lvl * def.prodMult * s.workshopMult(ws) * s.territoryBonus(ws)
-                    val sub = if (lvl == 0) act.getString(R.string.hire)
-                    else act.getString(R.string.level_fmt, lvl) + " · +" + Format.short(contrib) + "/mp"
-                    val r = newRow(d.emoji, act.getString(d.nameRes), sub)
-                    r.upBtn.text = Format.short(s.unitCost(ws, i))
-                    r.upBtn.setIconResource(R.drawable.ic_coin)
-                    r.upBtn.backgroundTintList = csl(act, R.color.green)
-                    r.upBtn.setTextColor(DARK_GREEN)
-                    r.upBtn.setOnClickListener {
-                        if (s.upgradeUnit(i)) { it.pop(); onChange(); rebuild() }
-                        else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
+                0 -> {
+                    val best = bestBuyIndex(ws)
+                    for (i in Defs.UNITS.indices) {
+                        val d = Defs.UNITS[i]
+                        val lvl = ws.unitLevels[i]
+                        val contrib = d.baseProd * lvl * def.prodMult * s.workshopMult(ws) * s.territoryBonus(ws)
+                        val baseSub = if (lvl == 0) act.getString(R.string.hire)
+                        else act.getString(R.string.level_fmt, lvl) + " · +" + Format.short(contrib) + "/mp"
+                        val sub = baseSub + roiLine(s.unitCost(ws, i), s.unitProdDelta(ws, i))
+                        val name = if (i == best) act.getString(d.nameRes) + "  ⭐" else act.getString(d.nameRes)
+                        val r = newRow(d.emoji, name, sub)
+                        val maxN = s.maxAffordableUnit(ws, i)
+                        val n = qtyFor(maxN)
+                        val cost = if (n <= 1) s.unitCost(ws, i) else s.bulkUnitCost(ws, i, n)
+                        r.upBtn.text = if (qtyMode == 0) Format.short(cost) else "×$n  " + Format.short(cost)
+                        r.upBtn.setIconResource(R.drawable.ic_coin)
+                        val afford = maxN >= 1
+                        r.upBtn.backgroundTintList = csl(act, if (afford) R.color.green else R.color.panel_light)
+                        r.upBtn.setTextColor(if (afford) DARK_GREEN else DIM)
+                        if (i == best) r.root.setBackgroundResource(R.drawable.bg_seg_selected)
+                        r.upBtn.setOnClickListener {
+                            val got = s.buyUnit(i, qtyFor(s.maxAffordableUnit(ws, i)))
+                            if (got > 0) {
+                                it.pop(); onChange()
+                                if (got > 1) Toast.makeText(act, act.getString(R.string.bought_fmt, got), Toast.LENGTH_SHORT).show()
+                                rebuild()
+                            } else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
+                        }
+                        v.upgradeList.addView(r.root)
                     }
-                    v.upgradeList.addView(r.root)
                 }
 
-                1 -> for (i in Defs.BUILDINGS.indices) {
-                    val d = Defs.BUILDINGS[i]
-                    val lvl = ws.buildingLevels[i]
-                    val extra = if (i == 2 && lvl > 0)
-                        " · +" + Format.short(s.labGemsPerSec(ws) * 3600) + " 💎/h" else ""
-                    val sub = act.getString(R.string.level_fmt, lvl) + " · " + act.getString(d.descRes) + extra
-                    val r = newRow(d.emoji, act.getString(d.nameRes), sub)
-                    r.upBtn.text = Format.short(s.buildingCost(ws, i))
-                    r.upBtn.setIconResource(R.drawable.ic_coin)
-                    r.upBtn.backgroundTintList = csl(act, R.color.green)
-                    r.upBtn.setTextColor(DARK_GREEN)
-                    r.upBtn.setOnClickListener {
-                        if (s.upgradeBuilding(i)) { it.pop(); onChange(); rebuild() }
-                        else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
+                1 -> {
+                    val best = bestBuyIndex(ws)
+                    for (i in Defs.BUILDINGS.indices) {
+                        val d = Defs.BUILDINGS[i]
+                        val lvl = ws.buildingLevels[i]
+                        val extra = if (i == 2 && lvl > 0)
+                            " · +" + Format.short(s.labGemsPerSec(ws) * 3600) + " 💎/h" else ""
+                        val sub = act.getString(R.string.level_fmt, lvl) + " · " + act.getString(d.descRes) + extra +
+                            roiLine(s.buildingCost(ws, i), s.buildingProdDelta(ws, i))
+                        val name = if (i == best) act.getString(d.nameRes) + "  ⭐" else act.getString(d.nameRes)
+                        val r = newRow(d.emoji, name, sub)
+                        val maxN = s.maxAffordableBuilding(ws, i)
+                        val n = qtyFor(maxN)
+                        val cost = if (n <= 1) s.buildingCost(ws, i) else s.bulkBuildingCost(ws, i, n)
+                        r.upBtn.text = if (qtyMode == 0) Format.short(cost) else "×$n  " + Format.short(cost)
+                        r.upBtn.setIconResource(R.drawable.ic_coin)
+                        val afford = maxN >= 1
+                        r.upBtn.backgroundTintList = csl(act, if (afford) R.color.green else R.color.panel_light)
+                        r.upBtn.setTextColor(if (afford) DARK_GREEN else DIM)
+                        if (i == best) r.root.setBackgroundResource(R.drawable.bg_seg_selected)
+                        r.upBtn.setOnClickListener {
+                            val got = s.buyBuilding(i, qtyFor(s.maxAffordableBuilding(ws, i)))
+                            if (got > 0) {
+                                it.pop(); onChange()
+                                if (got > 1) Toast.makeText(act, act.getString(R.string.bought_fmt, got), Toast.LENGTH_SHORT).show()
+                                rebuild()
+                            } else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
+                        }
+                        v.upgradeList.addView(r.root)
                     }
-                    v.upgradeList.addView(r.root)
                 }
 
                 else -> for (d in Defs.BOOSTS) {
@@ -642,7 +739,7 @@ object Dialogs {
 
     // --------------------------------------------------------------------- map
 
-    fun showMap(act: Activity, onChange: () -> Unit) {
+    fun showMap(act: Activity, onChange: () -> Unit, onMilestone: (String) -> Unit = {}) {
         val s = Game.get(act)
         val v = DialogMapBinding.inflate(act.layoutInflater)
         val dialog = AlertDialog.Builder(act).setView(v.root).create()
@@ -662,15 +759,20 @@ object Dialogs {
             v.btnPrestige.text = act.getString(R.string.prestige_fmt, ws.masteryStars, gain)
             v.btnPrestige.isEnabled = gain >= 1
             if (ws.territories >= Defs.TERRITORIES) {
-                v.mapHint.text = act.getString(R.string.all_conquered)
+                v.mapHint.text = if (s.canPrestige(s.activeWorld))
+                    act.getString(R.string.map_hint_prestige, s.prestigeStarsAvailable(s.activeWorld))
+                else act.getString(R.string.all_conquered)
                 v.btnConquer.isEnabled = false
                 v.btnConquer.icon = null
                 v.btnConquer.text = act.getString(R.string.all_conquered)
             } else {
-                v.mapHint.text = act.getString(R.string.territory_hint)
+                val tc = s.territoryCost(s.activeWorld)
+                v.mapHint.text = if (tc in 1..s.coins)
+                    act.getString(R.string.map_hint_conquer_ready)
+                else act.getString(R.string.territory_hint)
                 v.btnConquer.isEnabled = true
                 v.btnConquer.setIconResource(R.drawable.ic_coin)
-                v.btnConquer.text = act.getString(R.string.conquer) + " · " + Format.short(s.territoryCost(s.activeWorld))
+                v.btnConquer.text = act.getString(R.string.conquer) + " · " + Format.short(tc)
             }
         }
 
@@ -682,6 +784,11 @@ object Dialogs {
                 onChange()
                 if (res.clearedWorld) {
                     Toast.makeText(act, act.getString(R.string.world_cleared_reward, res.gemReward), Toast.LENGTH_LONG).show()
+                    if (s.markMilestone(GameState.M_FIRST_CLEAR)) {
+                        Game.save(act)
+                        Toast.makeText(act, act.getString(R.string.milestone_first_clear), Toast.LENGTH_LONG).show()
+                    }
+                    onMilestone("cleared")
                 }
                 refresh()
             } else {
@@ -719,6 +826,11 @@ object Dialogs {
                         Game.save(act)
                         onChange()
                         Toast.makeText(act, "+$got ⭐", Toast.LENGTH_LONG).show()
+                        if (s.markMilestone(GameState.M_FIRST_PRESTIGE)) {
+                            Game.save(act)
+                            Toast.makeText(act, act.getString(R.string.milestone_first_prestige), Toast.LENGTH_LONG).show()
+                        }
+                        onMilestone("prestige")
                         refresh()
                     }
                 }

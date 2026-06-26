@@ -33,6 +33,18 @@ class BoostDef(
     val multiplier: Double = 1.0
 )
 
+/** Which already-saved WorldState field drives a world's signature twist. */
+enum class TwistKind { TERRITORIES, WAREHOUSE, REFINES, STARS, BUILDING_SYNERGY, LAB, UNITS_TOTAL, NONE }
+
+/** Per-world signature bonus. Data only — never persisted; defaults keep it additive. */
+class TwistDef(
+    val kind: TwistKind = TwistKind.NONE,
+    val coef: Double = 0.0,   // bonus added per driver unit (0.03 = +3%)
+    val cap: Double = 0.0,    // max bonus fraction (0.45 = +45% ceiling)
+    val nameRes: Int = 0,     // Hungarian flavor label
+    val emoji: String = ""    // Unicode <= 7
+)
+
 class WorldDef(
     val id: String,
     val nameRes: Int,
@@ -50,7 +62,8 @@ class WorldDef(
     val worker: String,
     val nodes: Array<String>,
     val essenceName: Int,
-    val essenceEmoji: String
+    val essenceEmoji: String,
+    val twist: TwistDef = TwistDef()
 )
 
 class QuestDef(val nameRes: Int, val emoji: String, val target: Long, val rewardGems: Int)
@@ -111,7 +124,8 @@ object Defs {
             skyTop = 0xFFE7B57A.toInt(), skyBottom = 0xFF7A4A24.toInt(),
             ground = 0xFF8A5A2E.toInt(), accent = 0xFFFFD27A.toInt(),
             worker = "🐜", nodes = arrayOf("🍞", "🍅", "🥚", "🍶", "🍪"),
-            essenceName = R.string.essence_kitchen, essenceEmoji = "🌾"
+            essenceName = R.string.essence_kitchen, essenceEmoji = "🌾",
+            twist = TwistDef(TwistKind.TERRITORIES, 0.04, 0.36, R.string.twist_kitchen, "🍳")
         ),
         WorldDef(
             "bathroom", R.string.world_bathroom, "🛁",
@@ -120,7 +134,8 @@ object Defs {
             skyTop = 0xFF7FD8E6.toInt(), skyBottom = 0xFF1E6E78.toInt(),
             ground = 0xFF2C8A93.toInt(), accent = 0xFFBFF3FA.toInt(),
             worker = "🐌", nodes = arrayOf("💧", "🛁", "🚿", "💧", "🔵"),
-            essenceName = R.string.essence_bathroom, essenceEmoji = "💧"
+            essenceName = R.string.essence_bathroom, essenceEmoji = "💧",
+            twist = TwistDef(TwistKind.WAREHOUSE, 0.03, 0.45, R.string.twist_bathroom, "💧")
         ),
         WorldDef(
             "garden", R.string.world_garden, "🌷",
@@ -129,7 +144,8 @@ object Defs {
             skyTop = 0xFF9FE07A.toInt(), skyBottom = 0xFF2E7A2E.toInt(),
             ground = 0xFF3C8A3C.toInt(), accent = 0xFFE6FFC2.toInt(),
             worker = "🐛", nodes = arrayOf("🌱", "🍄", "🌷", "🐞", "🍀"),
-            essenceName = R.string.essence_garden, essenceEmoji = "🌼"
+            essenceName = R.string.essence_garden, essenceEmoji = "🌼",
+            twist = TwistDef(TwistKind.REFINES, 0.05, 0.50, R.string.twist_garden, "🌷")
         ),
         WorldDef(
             "spaceship", R.string.world_spaceship, "🚀",
@@ -138,7 +154,8 @@ object Defs {
             skyTop = 0xFF3A4E8C.toInt(), skyBottom = 0xFF0E1430.toInt(),
             ground = 0xFF243056.toInt(), accent = 0xFF9FB8FF.toInt(),
             worker = "👽", nodes = arrayOf("🔩", "🔋", "💾", "⚙️", "🛰️"),
-            essenceName = R.string.essence_spaceship, essenceEmoji = "⚛️"
+            essenceName = R.string.essence_spaceship, essenceEmoji = "⚛️",
+            twist = TwistDef(TwistKind.STARS, 0.06, 0.60, R.string.twist_spaceship, "⭐")
         ),
         WorldDef(
             "workshop", R.string.world_workshop, "🔧",
@@ -147,7 +164,8 @@ object Defs {
             skyTop = 0xFF8A8F99.toInt(), skyBottom = 0xFF34383F.toInt(),
             ground = 0xFF55504A.toInt(), accent = 0xFFF2A33C.toInt(),
             worker = "🐝", nodes = arrayOf("🔩", "🔧", "🔋", "⚙️", "📎"),
-            essenceName = R.string.essence_workshop, essenceEmoji = "🔩"
+            essenceName = R.string.essence_workshop, essenceEmoji = "🔩",
+            twist = TwistDef(TwistKind.BUILDING_SYNERGY, 0.05, 0.50, R.string.twist_workshop, "⚙️")
         ),
         WorldDef(
             "fridge", R.string.world_fridge, "❄️",
@@ -156,7 +174,8 @@ object Defs {
             skyTop = 0xFFBFE8F5.toInt(), skyBottom = 0xFF235E78.toInt(),
             ground = 0xFF3C7E96.toInt(), accent = 0xFFE8FAFF.toInt(),
             worker = "🐧", nodes = arrayOf("❄️", "💧", "🔵", "💎", "🍦"),
-            essenceName = R.string.essence_fridge, essenceEmoji = "❄️"
+            essenceName = R.string.essence_fridge, essenceEmoji = "❄️",
+            twist = TwistDef(TwistKind.LAB, 0.04, 0.40, R.string.twist_fridge, "❄️")
         ),
         WorldDef(
             "toybox", R.string.world_toybox, "🎲",
@@ -165,7 +184,8 @@ object Defs {
             skyTop = 0xFFFFD24D.toInt(), skyBottom = 0xFFC23A28.toInt(),
             ground = 0xFF3A7BD5.toInt(), accent = 0xFFFFF0A0.toInt(),
             worker = "🐢", nodes = arrayOf("🎲", "🎈", "🎯", "🎁", "🔔"),
-            essenceName = R.string.essence_toybox, essenceEmoji = "✨"
+            essenceName = R.string.essence_toybox, essenceEmoji = "✨",
+            twist = TwistDef(TwistKind.UNITS_TOTAL, 0.01, 0.40, R.string.twist_toybox, "🎈")
         )
     )
 

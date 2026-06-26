@@ -54,6 +54,17 @@ class GameView @JvmOverloads constructor(
     private var running = false
     private var shakeMag = 0f
 
+    // Active-play visuals (all transient; cleared on pause()).
+    private var goldenX = 0f
+    private var goldenY = 0f
+    private var goldenLife = 0f          // seconds remaining; >0 == on screen
+    private var goldenPulse = 0f
+    private var goldenCooldown = 6f      // seconds until it MAY appear again
+    private var comboFrac = 0f           // 0..1 combo strength (bar fill)
+    private var comboTimeFrac = 0f       // 0..1 time-left (bar urgency tint)
+    private var comboMultShown = 1f
+    private val GOLDEN = "⭐"            // U+2B50, Emoji 0.6 — safe on Android 8
+
     private val frame = object : Runnable {
         override fun run() {
             step()
@@ -85,6 +96,8 @@ class GameView @JvmOverloads constructor(
     fun pause() {
         running = false
         removeCallbacks(frame)
+        goldenLife = 0f          // no stale golden node lingering after backgrounding
+        goldenCooldown = 4f
     }
 
     fun shake(mag: Float = dp(8f)) {
@@ -109,6 +122,73 @@ class GameView @JvmOverloads constructor(
             )
         }
         shake(dp(5f))
+    }
+
+    /** Push live combo state from the Activity ticker (cheap; just stores floats). */
+    fun setCombo(frac: Float, timeFrac: Float, mult: Float) {
+        comboFrac = frac.coerceIn(0f, 1f)
+        comboTimeFrac = timeFrac.coerceIn(0f, 1f)
+        comboMultShown = mult.coerceAtLeast(1f)
+    }
+
+    /** True if a golden node is currently tappable. */
+    fun goldenLive(): Boolean = goldenLife > 0f
+
+    /** Hit-test a tap; returns true (and consumes the node) if it landed on the golden node. */
+    fun goldenHitTest(px: Float, py: Float): Boolean {
+        if (goldenLife <= 0f) return false
+        if (hypot(px - goldenX, py - goldenY) <= dp(34f)) {
+            goldenLife = 0f
+            goldenCooldown = 5f + rnd.nextFloat() * 7f
+            return true
+        }
+        return false
+    }
+
+    private fun armGolden() {
+        if (width == 0 || height == 0 || nodes.isEmpty()) return
+        val n = nodes[rnd.nextInt(nodes.size)]
+        goldenX = n.x
+        goldenY = n.y - dp(2f)
+        goldenLife = 4.5f                // ~4.5s window to react
+        goldenPulse = 0f
+    }
+
+    /** Big golden-burst pop (called when the node is cashed in). */
+    fun spawnGolden(label: String) {
+        if (width == 0) return
+        val cx = if (goldenX > 0f) goldenX else width * 0.5f
+        val cy = if (goldenY > 0f) goldenY else height * 0.5f
+        floaters.add(Floater(cx, cy, label, 0f, 1.3f, 0xFFFFD24D.toInt(), dp(34f), 0f, 0f))
+        for (i in 0 until 12) {
+            val ang = rnd.nextFloat() * 6.2832f
+            val sp = dp(170f) + rnd.nextFloat() * dp(160f)
+            floaters.add(Floater(cx, cy, GOLDEN, 0f, 0.9f + rnd.nextFloat() * 0.5f, 0, dp(15f),
+                cos(ang.toDouble()).toFloat() * sp, -(dp(140f) + rnd.nextFloat() * dp(200f))))
+        }
+        shake(dp(9f))
+    }
+
+    /** Red crit pop above the normal collect burst. */
+    fun spawnCrit(label: String) {
+        if (width == 0) return
+        floaters.add(Floater(width * 0.5f, height * 0.42f, label, 0f, 1.1f, 0xFFFF5A4D.toInt(), dp(26f), 0f, 0f))
+    }
+
+    /** A milestone burst (world cleared / prestige): rising stars + sparkles. */
+    fun spawnCelebrate() {
+        if (width == 0) return
+        val cx = width * 0.5f
+        val cy = height * 0.45f
+        floaters.add(Floater(cx, cy, "⭐", 0f, 1.4f, 0xFFFFCB3D.toInt(), dp(40f), 0f, 0f))
+        for (i in 0 until 14) {
+            val ang = rnd.nextFloat() * 6.2832f
+            val sp = dp(120f) + rnd.nextFloat() * dp(160f)
+            val g = if (i % 2 == 0) "✨" else "⭐"
+            floaters.add(Floater(cx, cy, g, 0f, 1.0f + rnd.nextFloat() * 0.6f, 0, dp(18f),
+                cos(ang.toDouble()).toFloat() * sp, -(dp(140f) + rnd.nextFloat() * dp(200f))))
+        }
+        shake(dp(7f))
     }
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
@@ -204,6 +284,17 @@ class GameView @JvmOverloads constructor(
             }
             if (f.age >= f.life) it.remove()
         }
+
+        // Golden node lifecycle (only ticks while running). Natural expiry re-seeds the cooldown
+        // so it can never re-arm on the very next frame.
+        if (goldenLife > 0f) {
+            goldenLife -= dt
+            goldenPulse += dt * 6f
+            if (goldenLife <= 0f) goldenCooldown = 5f + rnd.nextFloat() * 7f
+        } else {
+            goldenCooldown -= dt
+            if (goldenCooldown <= 0f && Math.random() < 0.012) armGolden()
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -243,6 +334,16 @@ class GameView @JvmOverloads constructor(
                 drawGlyph(canvas, n.emoji, n.x, n.y, dp(24f) * n.scale)
             }
 
+            // golden node (occasional bonus tap target)
+            if (goldenLife > 0f) {
+                val pulse = 1f + 0.12f * sin(goldenPulse.toDouble()).toFloat()
+                paint.color = 0x55FFD24D
+                canvas.drawCircle(goldenX, goldenY, dp(26f) * pulse, paint)
+                paint.color = 0xAAFFF0A0.toInt()
+                canvas.drawCircle(goldenX, goldenY, dp(18f) * pulse, paint)
+                drawGlyph(canvas, GOLDEN, goldenX, goldenY, dp(30f) * pulse)
+            }
+
             // workers (already back-to-front from step)
             for (wk in workers) {
                 val bob = sin(wk.phase.toDouble()).toFloat() * dp(2f)
@@ -272,6 +373,27 @@ class GameView @JvmOverloads constructor(
                     canvas.drawText(f.text, f.x, f.y, glyph)
                     glyph.isFakeBoldText = false
                 }
+            }
+
+            // combo bar (top-left), colour shifts toward red as the window runs out
+            if (comboFrac > 0f) {
+                val bw = w * 0.42f
+                val bh = dp(7f)
+                val bx = dp(10f)
+                val by = dp(10f)
+                paint.color = 0x66000000
+                canvas.drawRoundRect(bx, by, bx + bw, by + bh, bh, bh, paint)
+                val hot = (1f - comboTimeFrac).coerceIn(0f, 1f)
+                val rC = (0x43 + (0xC4 - 0x43) * hot).toInt()
+                paint.color = (0xFF shl 24) or (rC shl 16) or (0xC4 shl 8) or 0x63
+                canvas.drawRoundRect(bx, by, bx + bw * comboFrac, by + bh, bh, bh, paint)
+                glyph.textSize = dp(13f)
+                glyph.isFakeBoldText = true
+                glyph.color = 0xFFFFF0A0.toInt()
+                glyph.textAlign = Paint.Align.LEFT
+                canvas.drawText("×" + String.format(java.util.Locale.US, "%.2f", comboMultShown), bx, by + bh + dp(14f), glyph)
+                glyph.textAlign = Paint.Align.CENTER
+                glyph.isFakeBoldText = false
             }
         } catch (e: Throwable) {
             // A render hiccup must never crash the app — skip the frame.

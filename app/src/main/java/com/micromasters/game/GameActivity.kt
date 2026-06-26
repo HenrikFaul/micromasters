@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.Toast
@@ -19,11 +20,15 @@ class GameActivity : AppCompatActivity() {
     private var shownWorkers = -1
     private var lastEmptyToast = 0L
     private var pendingOffline: GameState.OfflineResult? = null
+    private var lastTapX = 0f
+    private var lastTapY = 0f
 
     private val ticker = object : Runnable {
         override fun run() {
             val now = System.currentTimeMillis()
             s.tick(now)
+            s.expireComboIfStale(now)
+            b.gameView.setCombo(s.comboFraction(now), s.comboTimeFraction(now), s.comboMult(now).toFloat())
             refreshLive(now)
             handler.postDelayed(this, 200L)
         }
@@ -44,10 +49,27 @@ class GameActivity : AppCompatActivity() {
         b.btnShop.setOnClickListener { it.bounce(); Dialogs.showShop(this) { onStateChanged() } }
         b.btnGameMenu.setOnClickListener { it.bounce(); Dialogs.showUpgrades(this, 2) { onStateChanged() } }
         b.btnCollect.setOnClickListener { b.btnCollect.bounce(); collect() }
-        b.gameView.setOnClickListener { collect() }
+        // Tapping the scene: a golden node takes priority, otherwise a normal active collect.
+        b.gameView.setOnTouchListener { v, ev ->
+            when (ev.action) {
+                MotionEvent.ACTION_DOWN -> { lastTapX = ev.x; lastTapY = ev.y }
+                MotionEvent.ACTION_UP -> {
+                    v.performClick()
+                    val now = System.currentTimeMillis()
+                    if (b.gameView.goldenHitTest(ev.x, ev.y)) goldenCollect(now) else collect()
+                }
+            }
+            true
+        }
         b.btnUpgrade.setOnClickListener { it.bounce(); Dialogs.showUpgrades(this, 0) { onStateChanged() } }
         b.btnUnits.setOnClickListener { it.bounce(); Dialogs.showUpgrades(this, 0) { onStateChanged() } }
-        b.btnMap.setOnClickListener { it.bounce(); Dialogs.showMap(this) { onStateChanged() } }
+        b.btnMap.setOnClickListener {
+            it.bounce()
+            Dialogs.showMap(this, onChange = { onStateChanged() }) {
+                b.gameView.spawnCelebrate()
+                b.btnCollect.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            }
+        }
     }
 
     override fun onResume() {
@@ -66,12 +88,21 @@ class GameActivity : AppCompatActivity() {
             pendingOffline = null
             if (r.coins >= 1 || r.gems >= 1) Dialogs.showOffline(this, r) { onStateChanged() }
         }
+
+        // Honour the hub goal-card "fejleszd" shortcut: pop the upgrades sheet once.
+        val seg = intent.getIntExtra("openUpgradeSeg", -1)
+        if (seg >= 0) {
+            intent.removeExtra("openUpgradeSeg")
+            b.gameView.post { Dialogs.showUpgrades(this, seg) { onStateChanged() } }
+        }
     }
 
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(ticker)
         b.gameView.pause()
+        NumAnim.cancelAll()
+        s.comboHits = 0; s.comboExpiry = 0L   // drop the transient combo chain on background
         Game.save(this)
     }
 
@@ -106,11 +137,14 @@ class GameActivity : AppCompatActivity() {
     private fun collect() {
         val now = System.currentTimeMillis()
         s.tick(now)
-        val amount = s.collect()
-        if (amount > 0) {
-            b.gameView.spawnCollect("+" + Format.short(amount))
-            b.btnCollect.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        val r = s.collectActive(now, golden = false)
+        if (r.amount > 0) {
+            b.gameView.spawnCollect("+" + Format.short(r.amount))
+            if (r.crit) b.gameView.spawnCrit(getString(R.string.crit_pop))
+            b.btnCollect.performHapticFeedback(
+                if (r.crit) HapticFeedbackConstants.LONG_PRESS else HapticFeedbackConstants.VIRTUAL_KEY)
             Game.save(this)
+            maybeMilestone()
         } else {
             b.btnCollect.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             b.gameView.shake()
@@ -122,15 +156,50 @@ class GameActivity : AppCompatActivity() {
         refreshLive(now)
     }
 
+    /** One-shot celebratory toast when the active world crosses a lifetime-coin milestone. */
+    private fun maybeMilestone() {
+        val lc = s.active().lifetimeCoins
+        val bit = when {
+            lc >= 1_000_000_000.0 -> GameState.M_COINS_1B
+            lc >= 1_000_000.0 -> GameState.M_COINS_1M
+            else -> 0L
+        }
+        if (bit != 0L && s.markMilestone(bit)) {
+            Game.save(this)
+            val amt = if (bit == GameState.M_COINS_1B) "1B" else "1M"
+            Toast.makeText(this, getString(R.string.milestone_coins, amt), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /** Golden-node cash-in: a production burst plus its own juice. */
+    private fun goldenCollect(now: Long) {
+        s.tick(now)
+        val r = s.collectActive(now, golden = true)
+        if (r.amount > 0) {
+            b.gameView.spawnGolden("+" + Format.short(r.amount))
+            if (r.crit) b.gameView.spawnCrit(getString(R.string.crit_pop))
+            b.btnCollect.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            Game.save(this)
+            Toast.makeText(this, getString(R.string.golden_pop), Toast.LENGTH_SHORT).show()
+        }
+        refreshLive(now)
+    }
+
     private fun refreshLive(now: Long) {
-        b.coinsText.text = Format.short(s.coins)
-        b.gemsText.text = Format.short(s.gems)
+        NumAnim.countTo(b.coinsText, s.coins)
+        NumAnim.countTo(b.gemsText, s.gems)
+
+        if (s.cores > 0) {
+            b.coresPill.visibility = View.VISIBLE
+            NumAnim.countTo(b.coresText, s.cores)
+        } else b.coresPill.visibility = View.GONE
 
         val ws = s.active()
+        b.starText.text = if (ws.masteryStars > 0) "⭐ " + ws.masteryStars else ""
         b.essenceText.text = Defs.world(s.activeWorld).essenceEmoji + " " + Format.short(ws.essence)
         val cap = s.capacity(s.activeWorld)
         val ratio = if (cap > 0) (ws.pending / cap).toFloat() else 0f
-        b.storageBar.progress = (ratio * 1000).toInt().coerceIn(0, 1000)
+        NumAnim.barTo(b.storageBar, (ratio * 1000).toInt().coerceIn(0, 1000))
         b.gameView.setFill(ratio)
 
         val full = ws.pending >= cap - 0.5
@@ -139,6 +208,14 @@ class GameActivity : AppCompatActivity() {
 
         val prod = s.effectiveProdPerSec(s.activeWorld, now)
         b.prodText.text = "▲ " + getString(R.string.per_sec_fmt, Format.short(prod))
+
+        // signature-twist live badge (only when the player has invested in the driver)
+        val def = Defs.world(s.activeWorld)
+        val frac = s.twistBonusFrac(ws, def)
+        if (frac > 0.0) {
+            b.prodText.text = b.prodText.text.toString() + "   " + def.twist.emoji + " " +
+                getString(def.twist.nameRes) + " " + String.format(java.util.Locale.US, "×%.2f", 1.0 + frac)
+        }
 
         val pend = floor(ws.pending).toLong()
         b.btnCollect.text = if (pend >= 1) getString(R.string.collect) + "  +" + Format.short(pend)

@@ -50,7 +50,12 @@ class GameState {
     var cores: Long = 0
     val research = IntArray(Defs.RESEARCH.size)
     var collectionBonus: Boolean = false
+    var milestonesShown: Long = 0L   // bitmask of one-shot milestone toasts already shown
     private val COLLECTION_BONUS = 0.05
+
+    // Active-play: tap-combo + crit. TRANSIENT — never serialized, so saves stay byte-identical.
+    var comboHits: Int = 0
+    var comboExpiry: Long = 0L
 
     fun world(id: String): WorldState = worlds.getValue(id)
     fun active(): WorldState = world(activeWorld)
@@ -164,23 +169,167 @@ class GameState {
         return true
     }
 
+    // ---- one-shot milestones --------------------------------------------
+    fun milestoneSeen(bit: Long): Boolean = (milestonesShown and bit) != 0L
+    /** Marks a one-shot milestone; returns true the FIRST time (caller shows the toast then). */
+    fun markMilestone(bit: Long): Boolean {
+        if (milestoneSeen(bit)) return false
+        milestonesShown = milestonesShown or bit
+        return true
+    }
+
+    // ---- recommendation engine (100% read-only over current state) ------
+    /** Cheapest AFFORDABLE production upgrade in the active world, or null. */
+    fun cheapestAffordableUpgrade(): ActionHint.Upgrade? {
+        val ws = active()
+        var best: ActionHint.Upgrade? = null
+        var bestCost = Long.MAX_VALUE
+        for (i in Defs.UNITS.indices) {
+            val c = unitCost(ws, i)
+            if (c in 1..coins && c < bestCost) { bestCost = c; best = ActionHint.Upgrade("u$i", c, 0) }
+        }
+        for (i in Defs.BUILDINGS.indices) {
+            val c = buildingCost(ws, i)
+            if (c in 1..coins && c < bestCost) { bestCost = c; best = ActionHint.Upgrade("b$i", c, 1) }
+        }
+        return best
+    }
+
+    /** The single most impactful action right now. Pure read-only — never mutates or rolls over. */
+    fun bestActionHint(now: Long): ActionHint {
+        // 1) Free rewards first — never leave gems/cores on the table.
+        if (dailyAvailable(now)) return ActionHint.Claim(ClaimWhat.DAILY)
+        for (i in Defs.QUESTS.indices) if (questClaimable(i)) return ActionHint.Claim(ClaimWhat.QUEST)
+        if (collectionClaimable()) return ActionHint.Claim(ClaimWhat.COLLECTION)
+        for (i in Defs.RESEARCH.indices) if (!researchMaxed(i) && cores >= researchCost(i)) return ActionHint.Claim(ClaimWhat.RESEARCH)
+        // 2) Storage full -> collect (only if there's a real pile).
+        val ws = active()
+        val cap = capacity(activeWorld)
+        if (cap > 0 && ws.pending >= cap - 0.5 && ws.pending >= 1.0) return ActionHint.CollectFull
+        // 3) Prestige only when the world is cleared AND >=1 star is available.
+        if (ws.territories >= Defs.TERRITORIES && canPrestige(activeWorld))
+            return ActionHint.Prestige(prestigeStarsAvailable(activeWorld))
+        // 4) Affordable production upgrade.
+        cheapestAffordableUpgrade()?.let { return it }
+        // 5) Conquer the next territory if affordable.
+        if (ws.territories < Defs.TERRITORIES) {
+            val tc = territoryCost(activeWorld)
+            if (tc in 1..coins) return ActionHint.Conquer(tc, ws.territories + 1)
+        }
+        // 6) Unlock the cheapest still-locked world.
+        val locked = Defs.WORLDS.filter { !world(it.id).unlocked }.minByOrNull { it.unlockGems }
+        if (locked != null)
+            return ActionHint.Unlock(locked.id, "", locked.unlockGems, gems >= locked.unlockGems)
+        // 7) Nothing pressing.
+        return ActionHint.Idle
+    }
+
+    /** Per-world signature bonus FRACTION (0..cap), derived only from already-saved state. */
+    fun twistBonusFrac(ws: WorldState, def: WorldDef): Double {
+        val t = def.twist
+        val driver: Int = when (t.kind) {
+            TwistKind.TERRITORIES      -> ws.territories
+            TwistKind.WAREHOUSE        -> ws.buildingLevels[0]
+            TwistKind.REFINES          -> ws.essenceRefines
+            TwistKind.STARS            -> ws.masteryStars
+            TwistKind.LAB              -> ws.buildingLevels[2]
+            // assembly-line synergy: only the LOWEST building counts (every station must run)
+            TwistKind.BUILDING_SYNERGY -> ws.buildingLevels.minOrNull() ?: 0
+            TwistKind.UNITS_TOTAL      -> ws.unitLevels.sum()
+            TwistKind.NONE             -> 0
+        }
+        if (driver <= 0 || t.coef <= 0.0) return 0.0
+        return (t.coef * driver).coerceIn(0.0, t.cap)
+    }
+
+    /** The signature multiplier spliced into the production chain. Defaults to 1.0. */
+    fun worldTwistMult(ws: WorldState, def: WorldDef): Double {
+        val m = 1.0 + twistBonusFrac(ws, def)
+        return if (m.isFinite() && m >= 1.0) m else 1.0
+    }
+
     fun capacity(id: String): Double {
         val def = Defs.world(id)
         return def.baseCap * warehouseMult(world(id))
     }
 
-    /** Production per second of a world, ignoring any active boost. */
-    fun baseProdPerSec(id: String): Double {
+    /** Canonical production formula (combo-neutral) — the ONE source of truth. */
+    private fun baseProdRaw(id: String): Double {
         val def = Defs.world(id)
         val ws = world(id)
         return unitsBaseProd(ws) * def.prodMult * workshopMult(ws) * territoryBonus(ws) *
-            (1.0 + 0.02 * ws.essenceRefines) * researchProdMult() * prestigeMult(ws) * collectionMult()
+            (1.0 + 0.02 * ws.essenceRefines) * researchProdMult() * prestigeMult(ws) *
+            collectionMult() * worldTwistMult(ws, def)
+    }
+
+    /** Production per second, ignoring boost and live combo (legacy callers stay combo-neutral). */
+    fun baseProdPerSec(id: String): Double = baseProdRaw(id)
+
+    /** Production per second including the live tap-combo multiplier (1.0 when no chain is live). */
+    fun baseProdPerSec(id: String, now: Long): Double = baseProdRaw(id) * comboMult(now)
+
+    // ---- Active-play: tap-combo + crit (state is transient; see fields above) ----
+    fun comboActive(now: Long): Boolean = comboHits > 0 && comboExpiry > 0L && now < comboExpiry
+
+    /** Live combo strength in [1.0 .. 1 + MAX*per-hit]; exactly 1.0 once it lapses. */
+    fun comboMult(now: Long): Double {
+        if (!comboActive(now)) return 1.0
+        val m = 1.0 + COMBO_MULT_PER_HIT * comboHits.coerceAtMost(COMBO_MAX_HITS)
+        return if (m.isFinite() && m >= 1.0) m else 1.0
+    }
+
+    fun comboFraction(now: Long): Float {
+        if (!comboActive(now)) return 0f
+        return (comboHits.toFloat() / COMBO_MAX_HITS).coerceIn(0f, 1f)
+    }
+
+    fun comboTimeFraction(now: Long): Float {
+        if (!comboActive(now)) return 0f
+        return ((comboExpiry - now).toFloat() / COMBO_WINDOW_MS).coerceIn(0f, 1f)
+    }
+
+    fun bumpCombo(now: Long, by: Int = 1) {
+        comboHits = (comboHits + by).coerceIn(0, COMBO_MAX_HITS)
+        comboExpiry = now + COMBO_WINDOW_MS
+    }
+
+    fun expireComboIfStale(now: Long) {
+        if (comboHits > 0 && now >= comboExpiry) { comboHits = 0; comboExpiry = 0L }
+    }
+
+    /** Result of an active collect: amount paid, whether it crit, live combo, golden flag. */
+    class CollectResult(val amount: Long, val crit: Boolean, val combo: Int, val golden: Boolean)
+
+    /** Active collect: applies golden burst + crit, bumps combo, returns details for juice. */
+    fun collectActive(now: Long, golden: Boolean): CollectResult {
+        val ws = active()
+        expireComboIfStale(now)
+        // Golden burst is added to pending first so it's cashed in the same payout.
+        if (golden) {
+            val grant = baseProdPerSec(activeWorld, now) * GOLDEN_GRANT_SEC
+            if (grant.isFinite() && grant > 0.0)
+                ws.pending = min(capacity(activeWorld), ws.pending + grant)
+        }
+        var amount = floor(ws.pending).toLong()
+        var crit = false
+        if (amount > 0) {
+            ws.pending -= amount
+            if (Math.random() < CRIT_CHANCE) { crit = true; amount += amount }
+            coins += amount
+            qCollected += amount
+            creditLifetime(ws, amount)
+            bumpCombo(now, if (golden) GOLDEN_COMBO_BUMP else 1)
+        }
+        // Lab gems harvest together (same as legacy collect()).
+        val g = floor(ws.gemPending).toLong()
+        if (g > 0) { gems += g; ws.gemPending -= g }
+        return CollectResult(amount, crit, comboHits, golden)
     }
 
     fun boostActive(now: Long): Boolean = now < boostExpiry && boostMult > 1.0
 
     fun effectiveProdPerSec(id: String, now: Long): Double {
-        val base = baseProdPerSec(id)
+        val base = baseProdPerSec(id, now)              // carries the live combo multiplier
         return if (boostActive(now)) base * boostMult else base
     }
 
@@ -198,6 +347,105 @@ class GameState {
     fun buildingCost(ws: WorldState, i: Int): Long {
         val d = Defs.BUILDINGS[i]
         return growthCost(d.baseCost, d.growth, ws.buildingLevels[i])
+    }
+
+    // ---- bulk purchasing & ROI (reuses the single growthCost formula; never forks it) ----
+
+    private val MAX_BULK = 1000  // safety bound for Max-buy loops (prevents ANR)
+
+    /** Saturating sum of the next [n] unit costs (same per-level growthCost). */
+    fun bulkUnitCost(ws: WorldState, i: Int, n: Int): Long {
+        val d = Defs.UNITS[i]
+        var total = 0L
+        val lvl = ws.unitLevels[i]
+        for (k in 0 until n.coerceAtMost(MAX_BULK)) {
+            val c = growthCost(d.baseCost, d.growth, lvl + k)
+            total = if (total > Long.MAX_VALUE - c) Long.MAX_VALUE else total + c
+            if (total == Long.MAX_VALUE) break
+        }
+        return total
+    }
+
+    fun bulkBuildingCost(ws: WorldState, i: Int, n: Int): Long {
+        val d = Defs.BUILDINGS[i]
+        var total = 0L
+        val lvl = ws.buildingLevels[i]
+        for (k in 0 until n.coerceAtMost(MAX_BULK)) {
+            val c = growthCost(d.baseCost, d.growth, lvl + k)
+            total = if (total > Long.MAX_VALUE - c) Long.MAX_VALUE else total + c
+            if (total == Long.MAX_VALUE) break
+        }
+        return total
+    }
+
+    /** Largest count buyable now with current coins (0..MAX_BULK). */
+    fun maxAffordableUnit(ws: WorldState, i: Int): Int {
+        val d = Defs.UNITS[i]
+        var n = 0; var budget = coins
+        while (n < MAX_BULK) {
+            val c = growthCost(d.baseCost, d.growth, ws.unitLevels[i] + n)
+            if (c == Long.MAX_VALUE || budget < c) break
+            budget -= c; n++
+        }
+        return n
+    }
+
+    fun maxAffordableBuilding(ws: WorldState, i: Int): Int {
+        val d = Defs.BUILDINGS[i]
+        var n = 0; var budget = coins
+        while (n < MAX_BULK) {
+            val c = growthCost(d.baseCost, d.growth, ws.buildingLevels[i] + n)
+            if (c == Long.MAX_VALUE || budget < c) break
+            budget -= c; n++
+        }
+        return n
+    }
+
+    /** Buys up to [n] unit levels on the active world. Returns the count actually bought. */
+    fun buyUnit(i: Int, n: Int): Int {
+        val ws = active()
+        var bought = 0
+        val want = n.coerceIn(0, MAX_BULK)
+        while (bought < want) {
+            val cost = unitCost(ws, i)
+            if (cost == Long.MAX_VALUE || coins < cost) break
+            coins -= cost; ws.unitLevels[i] += 1; bought++
+        }
+        qUpgrades += bought
+        return bought
+    }
+
+    fun buyBuilding(i: Int, n: Int): Int {
+        val ws = active()
+        var bought = 0
+        val want = n.coerceIn(0, MAX_BULK)
+        while (bought < want) {
+            val cost = buildingCost(ws, i)
+            if (cost == Long.MAX_VALUE || coins < cost) break
+            coins -= cost; ws.buildingLevels[i] += 1; bought++
+        }
+        qUpgrades += bought
+        return bought
+    }
+
+    /** Extra coins/sec from ONE more level of unit i — derived from the canonical baseProdPerSec. */
+    fun unitProdDelta(ws: WorldState, i: Int): Double {
+        val before = baseProdPerSec(activeWorld)
+        ws.unitLevels[i] += 1
+        val after = baseProdPerSec(activeWorld)
+        ws.unitLevels[i] -= 1
+        val v = after - before
+        return if (v.isFinite() && v > 0.0) v else 0.0
+    }
+
+    /** Extra coins/sec from ONE more level of building i (warehouse/workshop change a multiplier). */
+    fun buildingProdDelta(ws: WorldState, i: Int): Double {
+        val before = baseProdPerSec(activeWorld)
+        ws.buildingLevels[i] += 1
+        val after = baseProdPerSec(activeWorld)
+        ws.buildingLevels[i] -= 1
+        val v = after - before
+        return if (v.isFinite() && v > 0.0) v else 0.0
     }
 
     fun territoryCost(id: String): Long {
@@ -463,6 +711,7 @@ class GameState {
         o.put("cores", cores)
         o.put("research", JSONArray(research.toList()))
         o.put("collectionBonus", collectionBonus)
+        o.put("milestonesShown", milestonesShown)
         val ws = JSONObject()
         for ((id, w) in worlds) {
             val wo = JSONObject()
@@ -490,6 +739,20 @@ class GameState {
         const val STAR_K = 1.0
         const val STAR_SCALE = 10_000.0
         const val PRESTIGE_MULT_PER_STAR = 0.10
+
+        // Active-play tuning (combo / crit / golden).
+        const val COMBO_WINDOW_MS = 2200L      // time to keep the chain alive
+        const val COMBO_MAX_HITS = 30          // cap so the multiplier can't run away
+        const val COMBO_MULT_PER_HIT = 0.02    // +2% per stacked hit -> up to +60%
+        const val CRIT_CHANCE = 0.12           // 12% of non-empty collects crit
+        const val GOLDEN_GRANT_SEC = 25.0      // golden burst = ~25s of base production
+        const val GOLDEN_COMBO_BUMP = 6        // golden tap also fattens the combo
+
+        // One-shot milestone bits (bitmask in milestonesShown).
+        const val M_FIRST_CLEAR = 1L
+        const val M_FIRST_PRESTIGE = 1L shl 1
+        const val M_COINS_1M = 1L shl 2
+        const val M_COINS_1B = 1L shl 3
 
         fun newGame(now: Long): GameState {
             val s = GameState()
@@ -532,6 +795,7 @@ class GameState {
             s.cores = o.optLong("cores", 0L).coerceAtLeast(0L)
             readInts(o.optJSONArray("research"), s.research)
             s.collectionBonus = o.optBoolean("collectionBonus", false)
+            s.milestonesShown = o.optLong("milestonesShown", 0L).coerceAtLeast(0L)
             val ws = o.optJSONObject("worlds")
             for (def in Defs.WORLDS) {
                 val w = WorldState(unlocked = def.unlockedByDefault)
@@ -571,3 +835,17 @@ class GameState {
         }
     }
 }
+
+/** A single recommended next action surfaced by [GameState.bestActionHint]. */
+sealed class ActionHint {
+    /** Hire/level a unit (seg 0) or building (seg 1). labelArg is "u<i>" / "b<i>". */
+    class Upgrade(val labelArg: String, val cost: Long, val seg: Int) : ActionHint()
+    class Conquer(val cost: Long, val territoryNo: Int) : ActionHint()
+    class Unlock(val worldId: String, val nameArg: String, val gemCost: Int, val affordable: Boolean) : ActionHint()
+    class Prestige(val stars: Int) : ActionHint()
+    class Claim(val what: ClaimWhat) : ActionHint()
+    object CollectFull : ActionHint()
+    object Idle : ActionHint()
+}
+
+enum class ClaimWhat { DAILY, QUEST, RESEARCH, COLLECTION }

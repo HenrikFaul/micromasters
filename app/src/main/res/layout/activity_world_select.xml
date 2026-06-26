@@ -111,6 +111,68 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- next-goal / what-to-do card -->
+    <LinearLayout
+        android:id="@+id/goalCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_card"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/goalEmoji"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="🎯"
+            android:textSize="24sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/goalTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/goal_card_title"
+                android:textColor="@color/gold"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/goalText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/goalAction"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="10dp"
+            android:minWidth="72dp"
+            android:paddingHorizontal="12dp"
+            android:text="@string/goal_go"
+            android:textColor="#3A2400"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:clickable="false"
+            android:duplicateParentState="true"
+            app:backgroundTint="@color/gold"
+            app:cornerRadius="22dp" />
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/researchCard"
         android:layout_width="match_parent"

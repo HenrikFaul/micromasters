@@ -42,10 +42,15 @@ class WorldSelectActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        NumAnim.cancelAll()
+    }
+
     private fun refresh() {
         val s = Game.get(this)
-        b.coinsText.text = Format.short(s.coins)
-        b.gemsText.text = Format.short(s.gems)
+        NumAnim.countTo(b.coinsText, s.coins)
+        NumAnim.countTo(b.gemsText, s.gems)
         val now = System.currentTimeMillis()
         s.rolloverDaily(now)
         val tz = java.util.TimeZone.getDefault()
@@ -53,6 +58,95 @@ class WorldSelectActivity : AppCompatActivity() {
         b.eventText.text = getString(R.string.event_fmt, Format.duration(msToMidnight))
         b.researchText.text = getString(R.string.research_hub_fmt, Format.short(s.cores))
         buildWorldList(s)
+        renderGoal(s, now)
+    }
+
+    private fun renderGoal(s: GameState, now: Long) {
+        val def = Defs.world(s.activeWorld)
+        val worldName = getString(def.nameRes)
+        b.goalAction.text = getString(R.string.goal_go)
+        when (val hint = s.bestActionHint(now)) {
+            is ActionHint.Claim -> {
+                b.goalEmoji.text = "🎁"
+                b.goalTitle.text = getString(R.string.goal_claim_title)
+                b.goalText.text = when (hint.what) {
+                    ClaimWhat.DAILY -> getString(R.string.goal_claim_daily)
+                    ClaimWhat.QUEST -> getString(R.string.goal_claim_quest)
+                    ClaimWhat.RESEARCH -> getString(R.string.goal_claim_research)
+                    ClaimWhat.COLLECTION -> getString(R.string.goal_claim_collection)
+                }
+                b.goalCard.setOnClickListener {
+                    when (hint.what) {
+                        ClaimWhat.DAILY -> Dialogs.showDaily(this) { refresh() }
+                        ClaimWhat.QUEST -> Dialogs.showQuests(this) { refresh() }
+                        ClaimWhat.RESEARCH -> Dialogs.showResearch(this) { refresh() }
+                        ClaimWhat.COLLECTION -> Dialogs.showCollection(this) { refresh() }
+                    }
+                }
+            }
+            is ActionHint.CollectFull -> {
+                b.goalEmoji.text = "💰"
+                b.goalTitle.text = getString(R.string.goal_collect_title)
+                b.goalText.text = getString(R.string.goal_collect_text, worldName)
+                b.goalAction.text = getString(R.string.enter)
+                b.goalCard.setOnClickListener { enterWorld(s, s.activeWorld) }
+            }
+            is ActionHint.Prestige -> {
+                b.goalEmoji.text = "⭐"
+                b.goalTitle.text = getString(R.string.goal_prestige_title)
+                b.goalText.text = getString(R.string.goal_prestige_text, worldName, hint.stars)
+                b.goalCard.setOnClickListener { enterWorld(s, s.activeWorld) }
+            }
+            is ActionHint.Upgrade -> {
+                val i = hint.labelArg.substring(1).toInt()
+                val emoji = if (hint.seg == 0) Defs.UNITS[i].emoji else Defs.BUILDINGS[i].emoji
+                val name = if (hint.seg == 0) getString(Defs.UNITS[i].nameRes) else getString(Defs.BUILDINGS[i].nameRes)
+                b.goalEmoji.text = "⬆️"
+                b.goalTitle.text = getString(R.string.goal_upgrade_title)
+                b.goalText.text = getString(R.string.goal_upgrade_text, emoji, name, Format.short(hint.cost))
+                val seg = hint.seg
+                b.goalCard.setOnClickListener { enterWorldThenUpgrade(s, seg) }
+            }
+            is ActionHint.Conquer -> {
+                b.goalEmoji.text = "🚩"
+                b.goalTitle.text = getString(R.string.goal_conquer_title)
+                b.goalText.text = getString(R.string.goal_conquer_text, hint.territoryNo, Defs.TERRITORIES, Format.short(hint.cost))
+                b.goalCard.setOnClickListener { enterWorld(s, s.activeWorld) }
+            }
+            is ActionHint.Unlock -> {
+                b.goalEmoji.text = if (hint.affordable) "🔓" else "🔒"
+                b.goalTitle.text = getString(R.string.goal_unlock_title)
+                val name = getString(Defs.world(hint.worldId).nameRes)
+                b.goalText.text = if (hint.affordable)
+                    getString(R.string.goal_unlock_ready, name, hint.gemCost)
+                else getString(R.string.goal_unlock_save, name, hint.gemCost)
+                b.goalAction.text = if (hint.affordable) getString(R.string.goal_go) else getString(R.string.shop_title)
+                b.goalCard.setOnClickListener {
+                    if (hint.affordable) {
+                        if (s.unlockWorld(hint.worldId)) { Game.save(this); refresh() }
+                    } else Dialogs.showShop(this) { refresh() }
+                }
+            }
+            ActionHint.Idle -> {
+                b.goalEmoji.text = "🎯"
+                b.goalTitle.text = getString(R.string.goal_idle_title)
+                b.goalText.text = getString(R.string.goal_idle_text, worldName)
+                b.goalAction.text = getString(R.string.enter)
+                b.goalCard.setOnClickListener { enterWorld(s, s.activeWorld) }
+            }
+        }
+    }
+
+    private fun enterWorld(s: GameState, id: String) {
+        s.activeWorld = id
+        Game.save(this)
+        startActivity(Intent(this, GameActivity::class.java))
+    }
+
+    /** Open the active world, then auto-pop the upgrades sheet at [seg] on the game screen. */
+    private fun enterWorldThenUpgrade(s: GameState, seg: Int) {
+        Game.save(this)
+        startActivity(Intent(this, GameActivity::class.java).putExtra("openUpgradeSeg", seg))
     }
 
     private fun buildWorldList(s: GameState) {
@@ -69,7 +163,8 @@ class WorldSelectActivity : AppCompatActivity() {
                 item.worldLock.visibility = View.GONE
                 item.worldProgress.visibility = View.VISIBLE
                 item.worldProgress.progress = ws.territories
-                item.worldStatus.text = getString(R.string.progress_fmt, ws.territories, Defs.TERRITORIES)
+                item.worldStatus.text = getString(R.string.progress_fmt, ws.territories, Defs.TERRITORIES) +
+                    (if (ws.masteryStars > 0) "   ⭐ " + ws.masteryStars else "")
                 item.worldAction.text = getString(R.string.enter)
                 item.worldAction.backgroundTintList = green
                 item.worldAction.setTextColor(0xFF08240F.toInt())
@@ -83,7 +178,10 @@ class WorldSelectActivity : AppCompatActivity() {
             } else {
                 item.worldLock.visibility = View.VISIBLE
                 item.worldProgress.visibility = View.INVISIBLE
-                item.worldStatus.text = getString(R.string.locked)
+                val need = def.unlockGems - s.gems
+                item.worldStatus.text = if (need > 0)
+                    getString(R.string.locked_need_gems, Format.short(need))
+                else getString(R.string.locked_affordable)
                 item.worldAction.text = getString(R.string.unlock_for_gems, def.unlockGems)
                 item.worldAction.backgroundTintList = gold
                 item.worldAction.setTextColor(0xFF3A2400.toInt())
