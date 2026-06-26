@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
 import com.micromasters.game.databinding.DialogDailyBinding
 import com.micromasters.game.databinding.DialogMapBinding
 import com.micromasters.game.databinding.ItemDailyBinding
@@ -42,6 +43,20 @@ object Dialogs {
         animate().scaleX(1f).scaleY(1f).setDuration(150)
             .setInterpolator(OvershootInterpolator()).start()
     }
+
+    /** A Material-styled action button matching the rest of the app's dialogs. */
+    private fun mbtn(act: Activity, label: String, bgRes: Int, fg: Int): MaterialButton =
+        MaterialButton(act).apply {
+            text = label
+            isAllCaps = false
+            setTextColor(fg)
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            backgroundTintList = csl(act, bgRes)
+            cornerRadius = dp(act, 16)
+            insetTop = 0
+            insetBottom = 0
+        }
 
     // ---------------------------------------------------------------- upgrades
 
@@ -754,20 +769,24 @@ object Dialogs {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(act, 18), 0, 0)
         }
-        row.addView(android.widget.Button(act).apply {
-            text = act.getString(R.string.offline_double)
+        val doubleBtn = mbtn(act, act.getString(R.string.offline_double), R.color.gold, DARK_GOLD).apply {
             setOnClickListener {
+                it.pop()
                 s.coins += r.coins
                 Game.save(act)
                 onChange()
                 Toast.makeText(act, "+" + Format.short(r.coins) + " 💰", Toast.LENGTH_SHORT).show()
                 isEnabled = false
             }
-        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        row.addView(android.widget.Button(act).apply {
-            text = act.getString(R.string.offline_ok)
-            setOnClickListener { dialog.dismiss() }
-        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        // Disable the ×2 bonus when there was nothing to earn offline.
+        if (r.coins <= 0L) doubleBtn.isEnabled = false
+        row.addView(doubleBtn, LinearLayout.LayoutParams(0, dp(act, 50), 1f).apply {
+            marginEnd = dp(act, 8)
+        })
+        row.addView(mbtn(act, act.getString(R.string.offline_ok), R.color.green, DARK_GREEN).apply {
+            setOnClickListener { it.pop(); dialog.dismiss() }
+        }, LinearLayout.LayoutParams(0, dp(act, 50), 1f))
         root.addView(row)
 
         dialog.show()
