@@ -53,6 +53,11 @@
             android:process=":crash"
             android:theme="@android:style/Theme.DeviceDefault" />
 
+        <!-- Daily reminder alarm target (local only, not exported). -->
+        <receiver
+            android:name=".StreakReminderReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

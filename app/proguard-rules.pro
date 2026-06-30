@@ -14,11 +14,6 @@
     public <init>(android.content.Context, android.util.AttributeSet);
 }
 
-# --- WorkManager workers (instantiated reflectively by class name) ----------
--keep class * extends androidx.work.ListenableWorker {
-    public <init>(android.content.Context, androidx.work.WorkerParameters);
-}
-
 # --- Model enums ------------------------------------------------------------
 # Persistence keys on enum .ordinal (stable under R8), but keep the constants
 # intact defensively in case any value is ever round-tripped by name.
