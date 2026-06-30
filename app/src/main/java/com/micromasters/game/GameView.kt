@@ -1,16 +1,21 @@
 package com.micromasters.game
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 import java.util.Random
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.max
 import kotlin.math.sin
 
 /**
@@ -36,6 +41,13 @@ class GameView @JvmOverloads constructor(
     private var workerCount = 5
     private var fillRatio = 0f
     private var goldSkin = false
+
+    // Production-art bitmaps (decoded lazily; null => fall back to the procedural look).
+    private var sceneBitmap: Bitmap? = null
+    private var sceneResLoaded = 0
+    private var workerBitmap: Bitmap? = null
+    private val srcRect = Rect()
+    private val dstRect = RectF()
 
     private val rnd = Random(7)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -77,8 +89,21 @@ class GameView @JvmOverloads constructor(
         def = d
         workerCount = workers.coerceIn(3, 16)
         goldSkin = try { Game.get(context).skinGold } catch (e: Exception) { false }
+        loadArt()
         if (width > 0 && height > 0) rebuild()
         invalidate()
+    }
+
+    /** Decode the world scene + worker sprite. Any failure leaves the field null (procedural fallback). */
+    private fun loadArt() {
+        if (workerBitmap == null) {
+            workerBitmap = try { BitmapFactory.decodeResource(resources, R.drawable.sprite_worker) } catch (e: Throwable) { null }
+        }
+        if (def.sceneRes != sceneResLoaded) {
+            sceneBitmap = if (def.sceneRes == 0) null
+                else try { BitmapFactory.decodeResource(resources, def.sceneRes) } catch (e: Throwable) { null }
+            sceneResLoaded = def.sceneRes
+        }
     }
 
     fun setFill(ratio: Float) {
@@ -309,23 +334,30 @@ class GameView @JvmOverloads constructor(
                 canvas.translate((rnd.nextFloat() - 0.5f) * shakeMag, (rnd.nextFloat() - 0.5f) * shakeMag)
             }
 
-            // sky
-            paint.shader = bgShader
-            paint.style = Paint.Style.FILL
-            canvas.drawRect(-shakeMag, -shakeMag, w + shakeMag, h + shakeMag, paint)
-            paint.shader = null
-
-            // ambient specks
-            for (s in stars) {
-                paint.color = (s.a shl 24) or (def.accent and 0x00FFFFFF)
-                canvas.drawCircle(s.x, s.y, s.r, paint)
+            val scene = sceneBitmap
+            if (scene != null && !scene.isRecycled) {
+                // Real production-art backdrop (cover-fit), with a soft capacity glow from the floor.
+                drawCover(canvas, scene, w, h)
+                if (fillRatio > 0f) {
+                    paint.style = Paint.Style.FILL
+                    paint.color = ((30 + (fillRatio * 70).toInt()) shl 24) or (def.accent and 0x00FFFFFF)
+                    canvas.drawRect(-shakeMag, h * 0.62f, w + shakeMag, h + shakeMag, paint)
+                }
+            } else {
+                // Procedural fallback: gradient sky + ambient specks + ground mound.
+                paint.shader = bgShader
+                paint.style = Paint.Style.FILL
+                canvas.drawRect(-shakeMag, -shakeMag, w + shakeMag, h + shakeMag, paint)
+                paint.shader = null
+                for (s in stars) {
+                    paint.color = (s.a shl 24) or (def.accent and 0x00FFFFFF)
+                    canvas.drawCircle(s.x, s.y, s.r, paint)
+                }
+                paint.color = def.ground
+                canvas.drawPath(ground, paint)
+                paint.color = ((40 + (fillRatio * 90).toInt()) shl 24) or (def.accent and 0x00FFFFFF)
+                canvas.drawPath(ground, paint)
             }
-
-            // ground mound (reused path) + capacity tint
-            paint.color = def.ground
-            canvas.drawPath(ground, paint)
-            paint.color = ((40 + (fillRatio * 90).toInt()) shl 24) or (def.accent and 0x00FFFFFF)
-            canvas.drawPath(ground, paint)
 
             // nodes
             for (n in nodes) {
@@ -353,7 +385,19 @@ class GameView @JvmOverloads constructor(
                 }
                 paint.color = 0x44000000
                 canvas.drawOval(wk.x - dp(10f), wk.y + dp(6f), wk.x + dp(10f), wk.y + dp(12f), paint)
-                drawGlyph(canvas, def.worker, wk.x, wk.y + bob, dp(22f))
+                val wb = workerBitmap
+                if (wb != null && !wb.isRecycled) {
+                    val sz = dp(34f)
+                    val bottom = wk.y + bob + dp(8f)
+                    srcRect.set(0, 0, wb.width, wb.height)
+                    dstRect.set(wk.x - sz / 2f, bottom - sz, wk.x + sz / 2f, bottom)
+                    paint.shader = null
+                    paint.alpha = 255
+                    paint.isFilterBitmap = true
+                    canvas.drawBitmap(wb, srcRect, dstRect, paint)
+                } else {
+                    drawGlyph(canvas, def.worker, wk.x, wk.y + bob, dp(22f))
+                }
             }
 
             // floaters
@@ -407,6 +451,24 @@ class GameView @JvmOverloads constructor(
         glyph.alpha = alpha
         canvas.drawText(s, cx, cy + size * 0.35f, glyph)
         glyph.alpha = 255
+    }
+
+    /** Draw [bmp] center-cropped to cover the whole [w]x[h] view (no letterboxing). */
+    private fun drawCover(canvas: Canvas, bmp: Bitmap, w: Float, h: Float) {
+        val bw = bmp.width.toFloat()
+        val bh = bmp.height.toFloat()
+        if (bw <= 0f || bh <= 0f) return
+        val scale = max(w / bw, h / bh)
+        val dw = bw * scale
+        val dh = bh * scale
+        val left = (w - dw) / 2f
+        val top = (h - dh) / 2f
+        srcRect.set(0, 0, bmp.width, bmp.height)
+        dstRect.set(left - shakeMag, top - shakeMag, left + dw + shakeMag, top + dh + shakeMag)
+        paint.shader = null
+        paint.alpha = 255
+        paint.isFilterBitmap = true
+        canvas.drawBitmap(bmp, srcRect, dstRect, paint)
     }
 
     override fun onAttachedToWindow() {
