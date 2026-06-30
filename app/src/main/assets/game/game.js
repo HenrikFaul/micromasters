@@ -85,6 +85,24 @@
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify([...disc])); } catch (e) {} };
   let sel = [];           // selected element ids (max 2)
 
+  // ---------- meta: daily streak, intro-seen, lifetime best (retention) ----------
+  const MKEY = 'mm_meta_v1';
+  let meta = { introSeen: false, streak: 0, bestStreak: 0, lastDayN: -1, foundToday: 0 };
+  try { const m = JSON.parse(localStorage.getItem(MKEY) || 'null'); if (m && typeof m === 'object') meta = Object.assign(meta, m); } catch (e) {}
+  const saveMeta = () => { try { localStorage.setItem(MKEY, JSON.stringify(meta)); } catch (e) {} };
+  // local-day index (offset so the day rolls over at the player's local midnight)
+  function localDayN() { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); }
+  let streakAdvanced = false;
+  (function rollStreak() {
+    const today = localDayN();
+    if (meta.lastDayN === today) { /* already counted today */ }
+    else if (meta.lastDayN === today - 1) { meta.streak = (meta.streak || 0) + 1; meta.foundToday = 0; streakAdvanced = true; }
+    else { meta.streak = 1; meta.foundToday = 0; streakAdvanced = (meta.lastDayN >= 0); }
+    meta.lastDayN = today;
+    if (meta.streak > (meta.bestStreak || 0)) meta.bestStreak = meta.streak;
+    saveMeta();
+  })();
+
   // ---------- three.js ----------
   let renderer, scene, camera, clock;
   try {
@@ -170,12 +188,64 @@
   // ---------- DOM ----------
   const el = (id) => document.getElementById(id);
   function eraOrder(id) { return Object.keys(E).indexOf(id); }
+
+  // transient toast (streak / hint feedback)
+  let toastT = null;
+  function toast(html, ms) {
+    const t = el('toast'); if (!t) return;
+    t.innerHTML = '<span class="tbox">' + html + '</span>';
+    t.classList.add('show');
+    if (toastT) clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove('show'), ms || 2600);
+  }
+
+  // build a reverse map (result -> [a,b]) once, for hints and progress
+  const RBYRES = {};
+  for (const k in R) { const res = R[k]; if (!RBYRES[res]) RBYRES[res] = k.split('+'); }
+
+  // Hint: find a not-yet-discovered invention whose BOTH ingredients are already owned.
+  // Prefer the earliest in tech-tree order so hints nudge along the natural progression.
+  function findHint() {
+    let best = null, bestOrd = Infinity;
+    for (const k in R) {
+      const res = R[k];
+      if (disc.has(res)) continue;
+      const [a, b] = k.split('+');
+      if (disc.has(a) && disc.has(b)) {
+        const ord = eraOrder(res);
+        if (ord < bestOrd) { bestOrd = ord; best = { a, b, res }; }
+      }
+    }
+    return best;
+  }
+  function giveHint() {
+    if (el('reveal').style.display === 'flex' || el('codex').style.display === 'block' || el('masters').style.display === 'block') return;
+    const h = findHint();
+    if (!h) { toast('Mindent felfedeztél, ami most elérhető! 🎉', 3200); return; }
+    // auto-stage the two ingredients on the pedestals and flash them in the inventory
+    sel = [h.a];
+    showOnPad(padL, E[h.a].e); showOnPad(padR, E[h.b].e);
+    el('combo').textContent = E[h.a].e + ' + ' + E[h.b].e + ' = ?';
+    toast('Próbáld ki: ' + E[h.a].e + ' + ' + E[h.b].e, 3200);
+    renderInv();
+    // pre-select the first; one more tap on the 2nd ingredient completes it
+    flashChips([h.a, h.b]);
+  }
+  function flashChips(ids) {
+    const inv = el('inv'); if (!inv) return;
+    inv.querySelectorAll('.chip').forEach(c => {
+      if (ids.indexOf(c.dataset.id) >= 0) { c.classList.add('hintglow'); setTimeout(() => c.classList.remove('hintglow'), 2400); }
+    });
+    const first = inv.querySelector('.chip[data-id="' + ids[0] + '"]');
+    if (first && first.scrollIntoView) first.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
   function renderInv() {
     const inv = el('inv'); inv.innerHTML = '';
     const ids = [...disc].sort((a, b) => eraOrder(a) - eraOrder(b));
     for (const id of ids) {
       const d = E[id];
       const c = document.createElement('div'); c.className = 'chip' + (sel.includes(id) ? ' sel' : '');
+      c.dataset.id = id;
       c.innerHTML = '<div class="e">' + d.e + '</div><div class="n">' + d.n + '</div>';
       c.onclick = () => pick(id);
       inv.appendChild(c);
@@ -184,6 +254,7 @@
   function updateTop() {
     el('cx').textContent = disc.size + '/' + TOTAL;
     el('core').textContent = Math.round(disc.size / TOTAL * 100) + '%';
+    el('streak').textContent = meta.streak || 0;
   }
 
   function pick(id) {
@@ -212,7 +283,9 @@
     burst(core.position.clone(), 0xffd24d, 18);
     coreFlash = 1;
     if (!disc.has(r)) {
-      disc.add(r); save(); updateTop();
+      disc.add(r); save();
+      meta.foundToday = (meta.foundToday || 0) + 1; saveMeta();
+      updateTop();
       showReveal(r, true);
     } else {
       el('combo').textContent = E[r].e + ' (már megvan)';
@@ -270,8 +343,19 @@
   el('mastersBtn').onclick = () => { renderMasters(); el('masters').style.display = 'block'; };
   el('mastersClose').onclick = () => { el('masters').style.display = 'none'; };
 
-  el('introBtn').onclick = () => { el('intro').style.display = 'none'; };
-  el('back').onclick = () => { save(); if (window.Android && window.Android.back) window.Android.back(); };
+  el('introBtn').onclick = () => { el('intro').style.display = 'none'; meta.introSeen = true; saveMeta(); maybeStreakToast(); };
+  el('back').onclick = () => { save(); saveMeta(); if (window.Android && window.Android.back) window.Android.back(); };
+  el('hintBtn').onclick = giveHint;
+  el('streakPill').onclick = () => toast('🔥 ' + (meta.streak || 0) + ' napos széria · rekord ' + (meta.bestStreak || 0) + ' · ma ' + (meta.foundToday || 0) + ' felfedezés', 3200);
+
+  // Welcome-back streak nudge: shown once per session, after the intro is dismissed.
+  let streakToastShown = false;
+  function maybeStreakToast() {
+    if (streakToastShown || !streakAdvanced) return;
+    streakToastShown = true;
+    const pill = el('streakPill'); if (pill) { pill.classList.add('flash'); setTimeout(() => pill.classList.remove('flash'), 1000); }
+    setTimeout(() => toast('Üdv újra! 🔥 ' + meta.streak + ' napos szériában vagy', 3400), 450);
+  }
 
   // ---------- loop ----------
   let coreFlash = 0;
@@ -298,6 +382,8 @@
   setInterval(save, 5000);
 
   updateTop(); renderInv();
+  // Intro only on the very first run; returning players land straight in the game.
+  if (meta.introSeen) { el('intro').style.display = 'none'; maybeStreakToast(); }
   if (boot) boot.style.display = 'none';
   requestAnimationFrame(frame);
 })();

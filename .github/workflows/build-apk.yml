@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Assemble debug APK
+    name: Assemble release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -36,13 +36,28 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build debug APK
-        run: ./gradlew --no-daemon --stacktrace assembleDebug
+      - name: Generate signing keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/release.keystore" \
+            -alias micromasters \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass micromasters -keypass micromasters \
+            -dname "CN=MicroMasters, OU=Game, O=MicroMasters, L=City, ST=State, C=HU"
+          {
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.keystore"
+            echo "KEYSTORE_PASS=micromasters"
+            echo "KEY_ALIAS=micromasters"
+            echo "KEY_PASS=micromasters"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        run: ./gradlew --no-daemon --stacktrace assembleRelease
 
       - name: Stage APK as MicroMasters.apk
         run: |
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/MicroMasters.apk
+          cp app/build/outputs/apk/release/app-release.apk out/MicroMasters.apk
           ls -la out
 
       - name: Upload APK artifact
@@ -60,5 +75,5 @@ jobs:
           gh release delete latest-build --yes --cleanup-tag || true
           gh release create latest-build out/MicroMasters.apk \
             --title "MicroMasters — legfrissebb build" \
-            --notes "Automatikus APK build a(z) ${{ github.sha }} commitból. Töltsd le a **MicroMasters.apk** fájlt, és telepítsd Android eszközre (engedélyezd az ismeretlen forrásokat)." \
+            --notes "Aláírt, **nem debuggolható** release build a(z) ${{ github.sha }} commitból. Töltsd le a **MicroMasters.apk** fájlt, és telepítsd Android eszközre (engedélyezd az ismeretlen forrásokat). Frissítéskor előbb távolítsd el a korábbi verziót, mert minden build új aláírókulcsot kap." \
             --prerelease

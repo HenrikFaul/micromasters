@@ -26,7 +26,15 @@ class TitleActivity : AppCompatActivity() {
 
             b.btnPlay.setOnClickListener {
                 Sound.sfx(this, R.raw.sfx_tap)
+                // Straight into the discovery game — the core loop (combine → discover)
+                // is the whole point, so don't bury it behind a menu detour.
+                val world = Game.get(this).activeWorld
+                startActivity(Intent(this, Game3DActivity::class.java).putExtra("world", world))
+            }
+            b.btnPlay.setOnLongClickListener {
+                // Power-user shortcut to the legacy world hub (still available, just not in the way).
                 startActivity(Intent(this, WorldSelectActivity::class.java))
+                true
             }
             b.btnLogin.setOnClickListener {
                 Toast.makeText(this, getString(R.string.title_login) + " ✓", Toast.LENGTH_SHORT).show()

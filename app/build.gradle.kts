@@ -11,9 +11,22 @@ android {
         applicationId = "com.micromasters.game"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.7"
+        versionCode = 8
+        versionName = "1.8"
         resourceConfigurations += listOf("hu", "en")
+    }
+
+    signingConfigs {
+        create("release") {
+            // Populated by CI (an ephemeral keystore generated at build time) via env vars.
+            // Local debug builds don't need these and are left untouched.
+            System.getenv("KEYSTORE_FILE")?.let { ks ->
+                storeFile = file(ks)
+                storePassword = System.getenv("KEYSTORE_PASS")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASS")
+            }
+        }
     }
 
     buildTypes {
@@ -22,7 +35,13 @@ android {
             isMinifyEnabled = false
         }
         release {
+            // A real, non-debuggable, signed release build. Fixes the audit's only High
+            // finding ("Application is debuggable"). Signing is only wired up when CI
+            // provides a keystore, so local `assembleDebug` keeps working unchanged.
             isMinifyEnabled = false
+            if (System.getenv("KEYSTORE_FILE") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
