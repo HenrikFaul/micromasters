@@ -70,13 +70,51 @@
   #masters .sub { text-align:center; color:#9fb0d8; font-size:12px; margin-bottom:12px; }
   .mcard { display:flex; gap:10px; align-items:center; background:rgba(20,30,58,.8); border:1px solid rgba(150,180,255,.16);
     border-radius:14px; padding:10px; margin-bottom:8px; }
-  .mcard.ready { border-color:#7fe08a; box-shadow:0 0 0 1px rgba(127,224,138,.3); }
+  .mcard.ready { border-color:#ffb15d; box-shadow:0 0 0 1px rgba(255,177,93,.35); }
+  .mcard.done { border-color:#7fe08a; opacity:.92; }
+  .mfight { flex:0 0 auto; align-self:center; background:linear-gradient(180deg,#ff7a5d,#ff5d3d); color:#fff;
+    border:none; border-radius:12px; padding:11px 13px; font-weight:900; font-size:13px; box-shadow:0 4px 12px rgba(255,80,60,.35); }
+  .mfight.again { background:rgba(127,224,138,.16); color:#9fe0b0; box-shadow:none; font-size:17px; padding:9px 13px; }
+  .mfight:active { transform:translateY(2px); }
   .mcard .me { font-size:38px; flex:0 0 auto; }
   .mcard .mb { flex:1; min-width:0; }
   .mcard .mn { font-weight:800; font-size:15px; }
   .mcard .mera { font-size:11px; color:#ffd24d; letter-spacing:.06em; }
   .mcard .mmech { font-size:12px; color:#c7d4f5; margin:3px 0; }
   .mcard .mreq { font-size:18px; }
+  /* boss battle */
+  #battle { inset:0; display:none; z-index:37; flex-direction:column;
+    background:linear-gradient(180deg,rgba(10,4,12,.95) 0%,rgba(10,4,12,.55) 20%,rgba(10,4,12,0) 40%,rgba(10,4,12,0) 52%,rgba(8,4,14,.78) 70%,rgba(8,4,14,.97) 100%); }
+  #battle.show { display:flex; }
+  #bClose { position:absolute; top:calc(10px + env(safe-area-inset-top)); left:12px; z-index:2;
+    background:rgba(20,12,26,.7); color:#eaf0ff; border:1px solid rgba(255,120,120,.3); border-radius:14px; padding:7px 12px; font-weight:800; font-size:15px; }
+  #bTop { padding:calc(14px + env(safe-area-inset-top)) 16px 8px; text-align:center; }
+  #bBossLine { font-size:20px; font-weight:900; }
+  #bBossLine #bEmoji { font-size:26px; }
+  #bEra { font-size:11px; letter-spacing:.16em; color:#ff9a6b; font-weight:800; margin:2px 0 8px; text-transform:uppercase; }
+  .bbar { position:relative; height:20px; border-radius:11px; overflow:hidden; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); }
+  .bbar .bfill { position:absolute; inset:0 auto 0 0; width:100%; transition:width .35s cubic-bezier(.2,.8,.2,1); }
+  .bbar.boss .bfill { background:linear-gradient(90deg,#ff5d5d,#ff9a3d); }
+  .bbar.you .bfill { background:linear-gradient(90deg,#5db0ff,#7fe0ff); }
+  .bbar .btxt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  #bMech { padding:8px 22px 0; text-align:center; font-size:12.5px; font-style:italic; color:#e7b9c9; }
+  #bLog { flex:1; display:flex; align-items:center; justify-content:center; padding:6px 22px; text-align:center; font-size:14px; font-weight:700; color:#dfe7ff; min-height:0; }
+  #bYouWrap { padding:8px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .byouLabel { font-size:12px; font-weight:800; color:#bcd0ff; margin-bottom:5px; }
+  #bHand { display:flex; gap:8px; margin-top:12px; }
+  .bcard { flex:1; min-width:0; background:rgba(22,30,58,.95); border:2px solid rgba(150,180,255,.22); border-radius:14px; padding:9px 4px 7px; text-align:center; }
+  .bcard:active { transform:translateY(2px); }
+  .bcard.weak { border-color:#ffd24d; box-shadow:0 0 0 2px rgba(255,210,77,.3); }
+  .bcard .bce { font-size:26px; line-height:1.1; }
+  .bcard .bcn { font-size:9.5px; font-weight:700; color:#cfe; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bcard .bcd { font-size:11px; font-weight:900; margin-top:3px; color:#9fe0ff; }
+  .bcard.weak .bcd { color:#ffd24d; }
+  #bEnd { display:none; position:absolute; inset:0; z-index:3; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; padding:24px;
+    background:radial-gradient(circle at 50% 42%,rgba(40,20,60,.6),rgba(6,3,12,.92)); }
+  #bEnd.show { display:flex; }
+  #bEndEmoji { font-size:80px; filter:drop-shadow(0 8px 26px rgba(255,180,120,.6)); animation:pop .5s ease; }
+  #bEndTitle { font-size:26px; font-weight:900; }
+  #bEndSub { font-size:14px; color:#cfe; max-width:80%; }
   /* intro story */
   #intro { inset:0; display:flex; z-index:40; background:#05070f; align-items:center; justify-content:center; flex-direction:column; padding:26px; text-align:center; }
   #intro h1 { font-size:30px; font-weight:900; letter-spacing:.04em; margin-bottom:4px; }
@@ -128,6 +166,28 @@
     <div class="sub" id="mastersSub">0 / 0</div>
     <div id="mastersGrid"></div>
     <button class="go" id="mastersClose">BEZÁR</button>
+  </div>
+
+  <div class="hud" id="battle">
+    <button id="bClose">✕</button>
+    <div id="bTop">
+      <div id="bBossLine"><span id="bEmoji">🗿</span> <span id="bName">—</span></div>
+      <div id="bEra">—</div>
+      <div class="bbar boss"><div id="bHP" class="bfill"></div><span class="btxt" id="bHPtxt">100%</span></div>
+    </div>
+    <div id="bMech">—</div>
+    <div id="bLog">—</div>
+    <div id="bYouWrap">
+      <div class="byouLabel">🧩 Mag-integritás</div>
+      <div class="bbar you"><div id="bCore" class="bfill"></div><span class="btxt" id="bCoretxt">100</span></div>
+      <div id="bHand"></div>
+    </div>
+    <div id="bEnd">
+      <div id="bEndEmoji">🏆</div>
+      <div id="bEndTitle">—</div>
+      <div id="bEndSub">—</div>
+      <button class="go" id="bEndBtn">TOVÁBB</button>
+    </div>
   </div>
 
   <div id="intro">

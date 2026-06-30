@@ -87,8 +87,10 @@
 
   // ---------- meta: daily streak, intro-seen, lifetime best (retention) ----------
   const MKEY = 'mm_meta_v1';
-  let meta = { introSeen: false, streak: 0, bestStreak: 0, lastDayN: -1, foundToday: 0 };
+  let meta = { introSeen: false, streak: 0, bestStreak: 0, lastDayN: -1, foundToday: 0, defeated: [], wins: 0 };
   try { const m = JSON.parse(localStorage.getItem(MKEY) || 'null'); if (m && typeof m === 'object') meta = Object.assign(meta, m); } catch (e) {}
+  if (!Array.isArray(meta.defeated)) meta.defeated = [];
+  const isDefeated = (id) => meta.defeated.indexOf(id) >= 0;
   const saveMeta = () => { try { localStorage.setItem(MKEY, JSON.stringify(meta)); } catch (e) {} };
   // local-day index (offset so the day rolls over at the player's local midnight)
   function localDayN() { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); }
@@ -323,25 +325,149 @@
   el('codexBtn').onclick = () => { renderCodex(); el('codex').style.display = 'block'; };
   el('codexClose').onclick = () => { el('codex').style.display = 'none'; };
 
-  // Masters (era bosses): strategic gates beaten by having discovered the required tech
+  // Masters (era bosses): real duels. The list shows who you can challenge.
+  function bossReady(m) { const req = m.req || []; return req.length > 0 && req.every(id => disc.has(id)); }
   function renderMasters() {
     const g = el('mastersGrid'); g.innerHTML = '';
-    let ready = 0;
+    let ready = 0, won = 0;
     for (const m of MASTERS) {
       const req = m.req || [];
-      const ok = req.length > 0 && req.every(id => disc.has(id));
-      if (ok) ready++;
+      const ok = bossReady(m), done = isDefeated(m.id);
+      if (ok) ready++; if (done) won++;
       const reqHtml = req.map(id => '<span style="opacity:' + (disc.has(id) ? 1 : .3) + '">' + ((E[id] && E[id].e) || '❓') + '</span>').join(' ');
-      const card = document.createElement('div'); card.className = 'mcard' + (ok ? ' ready' : '');
-      card.innerHTML = '<div class="me">' + m.emoji + '</div><div class="mb"><div class="mn">' + m.name + '</div>' +
+      const status = done ? '<b style="color:#7fe08a">LEGYŐZVE ✅</b>' : ok ? '' : '<span style="color:#9fb0d8">zárva 🔒</span>';
+      const card = document.createElement('div'); card.className = 'mcard' + (done ? ' done' : ok ? ' ready' : '');
+      card.innerHTML = '<div class="me">' + m.emoji + '</div><div class="mb"><div class="mn">' + m.name + (done ? ' 👑' : '') + '</div>' +
         '<div class="mera">' + m.era + '</div><div class="mmech">' + (m.mechanic || '') + '</div>' +
-        '<div class="mreq">' + reqHtml + ' &nbsp; ' + (ok ? '<b style="color:#7fe08a">LEGYŐZHETŐ ⚔️</b>' : '<span style="color:#9fb0d8">zárva 🔒</span>') + '</div></div>';
+        '<div class="mreq">' + reqHtml + (status ? ' &nbsp; ' + status : '') + '</div></div>';
+      if (ok) {
+        const btn = document.createElement('button');
+        btn.className = 'mfight' + (done ? ' again' : '');
+        btn.textContent = done ? '↻' : '⚔️ CSATA';
+        btn.onclick = () => startBattle(m);
+        card.appendChild(btn);
+      }
       g.appendChild(card);
     }
-    el('mastersSub').textContent = ready + ' / ' + MASTERS.length + ' Master legyőzhető — fedezd fel a hiányzó technológiákat';
+    el('mastersSub').innerHTML = '⚔️ ' + won + ' legyőzve · ' + Math.max(0, ready - won) + ' kihívható · ' + MASTERS.length + ' korszak';
   }
   el('mastersBtn').onclick = () => { renderMasters(); el('masters').style.display = 'block'; };
   el('mastersClose').onclick = () => { el('masters').style.display = 'none'; };
+
+  // ---------- boss duel engine ----------
+  // Your discovered tech is your arsenal. Each turn you draw a hand; the boss's required
+  // tech are its weaknesses (crit damage). The boss counters and enrages every 3rd turn.
+  const bEl = (id) => document.getElementById(id);
+  let battle = null;
+  let shake = 0, bossHit = 0, bossMode = false, bossExplode = 0;
+
+  function masterTier(m) { const i = MASTERS.indexOf(m); return i < 0 ? 0 : i; }
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  function startBattle(m) {
+    if (!bossReady(m)) { toast('Előbb fedezd fel a Master technológiáit 🔒', 2800); return; }
+    const tier = masterTier(m);
+    const coreMax = 100 + 10 * (meta.wins || 0);
+    battle = {
+      m: m, tier: tier, bossHP: 100, bossMax: 100, core: coreMax, coreMax: coreMax,
+      turn: 0, lastWeak: null, over: false, hand: [],
+      weakDmg: 10, normDmg: 4, counter: 4.5 + tier * 0.65,
+    };
+    bEl('bEmoji').textContent = m.emoji;
+    bEl('bName').textContent = m.name;
+    bEl('bEra').textContent = m.era;
+    bEl('bMech').textContent = '„' + (m.mechanic || '') + '”';
+    bEl('bEnd').classList.remove('show');
+    el('masters').style.display = 'none';
+    bEl('battle').classList.add('show');
+    bossVisual(true);
+    bLog('A párbaj megkezdődött — vesd be a felfedezett technológiáidat! ⚔️');
+    drawHand(); renderBattle();
+  }
+  function bLog(html) { const l = bEl('bLog'); if (l) l.innerHTML = html; }
+
+  function drawHand() {
+    const m = battle.m, req = m.req || [];
+    const weaks = req.filter(id => disc.has(id) && id !== battle.lastWeak);
+    const others = [...disc].filter(id => req.indexOf(id) < 0);
+    const hand = [];
+    shuffle(weaks); shuffle(others);
+    for (let i = 0; i < weaks.length && hand.length < 2; i++) hand.push(weaks[i]);
+    for (let i = 0; i < others.length && hand.length < 4; i++) hand.push(others[i]);
+    const reqOwned = req.filter(id => disc.has(id));
+    for (let gi = 0; hand.length < 4 && reqOwned.length; gi++) hand.push(reqOwned[gi % reqOwned.length]);
+    battle.hand = hand.slice(0, 4);
+  }
+
+  function renderBattle() {
+    const b = battle; if (!b) return;
+    bEl('bHP').style.width = Math.max(0, b.bossHP) / b.bossMax * 100 + '%';
+    bEl('bHPtxt').textContent = Math.max(0, Math.ceil(b.bossHP)) + '%';
+    bEl('bCore').style.width = Math.max(0, b.core) / b.coreMax * 100 + '%';
+    bEl('bCoretxt').textContent = Math.max(0, Math.ceil(b.core)) + ' / ' + b.coreMax;
+    const wrap = bEl('bHand'); wrap.innerHTML = '';
+    const req = b.m.req || [];
+    for (const id of b.hand) {
+      const weak = req.indexOf(id) >= 0;
+      const dmg = weak ? b.weakDmg : b.normDmg;
+      const c = document.createElement('button'); c.className = 'bcard' + (weak ? ' weak' : '');
+      c.innerHTML = '<div class="bce">' + E[id].e + '</div><div class="bcn">' + E[id].n +
+        '</div><div class="bcd">' + (weak ? '⚔️' : '') + dmg + '</div>';
+      c.onclick = () => playCard(id, weak);
+      wrap.appendChild(c);
+    }
+  }
+
+  function playCard(id, weak) {
+    const b = battle; if (!b || b.over) return;
+    const dmg = weak ? b.weakDmg : b.normDmg;
+    b.bossHP -= dmg;
+    if (weak) b.lastWeak = id;
+    burst(core.position.clone(), weak ? 0xffd24d : 0x9fd0ff, weak ? 20 : 10);
+    coreFlash = 1; shake = weak ? 0.5 : 0.3; bossHit = 1;
+    if (b.bossHP <= 0) { renderBattle(); setTimeout(playerWin, 260); return; }
+    b.turn++;
+    const enrage = (b.turn % 3 === 0);
+    const cd = Math.round(b.counter * (0.85 + Math.random() * 0.3) * (enrage ? 1.5 : 1));
+    b.core -= cd;
+    bLog(E[id].e + ' ' + (weak ? '<b style="color:#ffd24d">KRITIKUS</b> ' : '') + '−' + dmg + ' a Masternek!<br>' +
+      (enrage ? '⚠️ <b style="color:#ff8a6b">Feltöltött csapás!</b> ' : 'A Master visszavág: ') + '−' + cd + ' a Magnak.');
+    if (b.core <= 0) { renderBattle(); setTimeout(playerLose, 260); return; }
+    drawHand(); renderBattle();
+  }
+
+  function playerWin() {
+    const b = battle; if (!b) return; b.over = true;
+    bossVisual(false, true);
+    if (!isDefeated(b.m.id)) { meta.defeated.push(b.m.id); meta.wins = (meta.wins || 0) + 1; saveMeta(); }
+    bEl('bEndEmoji').textContent = '🏆';
+    bEl('bEndTitle').textContent = 'MASTER LEGYŐZVE';
+    bEl('bEndSub').innerHTML = b.m.emoji + ' <b>' + b.m.name + '</b> elbukott. A Mag erősebb lett.<br>Legyőzött Masterek: ' + (meta.wins || 0) + ' / ' + MASTERS.length;
+    bEl('bEnd').classList.add('show');
+  }
+  function playerLose() {
+    const b = battle; if (!b) return; b.over = true;
+    bossVisual(false);
+    bEl('bEndEmoji').textContent = '💥';
+    bEl('bEndTitle').textContent = 'A MAG MEGINGOTT';
+    bEl('bEndSub').innerHTML = 'A Mag-integritás elfogyott. Fedezz fel több technológiát — minden új találmány erősíti a fegyvertáradat —, vagy próbáld újra.';
+    bEl('bEnd').classList.add('show');
+  }
+  function closeBattle() {
+    bEl('battle').classList.remove('show');
+    bEl('bEnd').classList.remove('show');
+    bossVisual(false);
+    battle = null; updateTop();
+  }
+  // morph the Master Core into the boss (red, swollen, pulsing) and back
+  function bossVisual(on, explode) {
+    bossMode = on;
+    if (on) { coreMat.color.setHex(0xff5a3c); coreMat.emissive.setHex(0xff2a1a); }
+    else { coreMat.color.setHex(0x6f9bff); coreMat.emissive.setHex(0x2a4cff); if (!explode) core.scale.setScalar(1); }
+    if (explode) { bossExplode = 1; burst(core.position.clone(), 0xff7a3d, 40); }
+  }
+  bEl('bEndBtn').onclick = () => { closeBattle(); renderMasters(); el('masters').style.display = 'block'; };
+  bEl('bClose').onclick = () => { closeBattle(); renderMasters(); el('masters').style.display = 'block'; };
 
   el('introBtn').onclick = () => { el('intro').style.display = 'none'; meta.introSeen = true; saveMeta(); maybeStreakToast(); };
   el('back').onclick = () => { save(); saveMeta(); if (window.Android && window.Android.back) window.Android.back(); };
@@ -368,8 +494,23 @@
       s.position.copy(s.userData.dir).multiplyScalar(gather + Math.sin(t * 1.5) * 0.04);
       s.rotation.x += dt * s.userData.spin.x; s.rotation.y += dt * s.userData.spin.y;
     }
-    coreMat.emissiveIntensity = 0.3 + ratio * 0.7 + coreFlash * 0.8;
+    if (bossExplode > 0) {
+      bossExplode = Math.max(0, bossExplode - dt * 1.5);
+      core.scale.setScalar(Math.max(0.001, bossExplode));
+      coreMat.emissiveIntensity = 1.5;
+    } else if (bossMode) {
+      coreMat.emissiveIntensity = 1.2 + Math.sin(t * 6) * 0.2 + bossHit * 1.2;
+      core.scale.setScalar(1.7 + Math.sin(t * 2.2) * 0.06 + bossHit * 0.25);
+    } else {
+      coreMat.emissiveIntensity = 0.3 + ratio * 0.7 + coreFlash * 0.8;
+    }
     coreFlash = Math.max(0, coreFlash - dt * 2);
+    bossHit = Math.max(0, bossHit - dt * 2.5);
+    if (shake > 0) {
+      camera.position.x = Math.sin(t * 50) * shake * 0.16;
+      camera.position.y = 0.4 + Math.cos(t * 47) * shake * 0.12;
+      shake = Math.max(0, shake - dt * 1.6);
+    } else if (camera.position.x !== 0) { camera.position.x = 0; camera.position.y = 0.4; }
     [padL, padR].forEach(p => { if (p.userData.sp) p.userData.sp.position.y = 0.8 + Math.sin(t * 2) * 0.05; });
     for (let i = fx.length - 1; i >= 0; i--) { const m = fx[i]; m.userData.life -= dt;
       m.userData.v.multiplyScalar(0.96); m.position.addScaledVector(m.userData.v, dt);
