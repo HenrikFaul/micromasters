@@ -3,59 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>MicroMasters 3D</title>
+<title>MicroMasters — Codex of Humanity</title>
 <style>
-  :root { --sky1:#7fb4ff; --sky2:#bfe0ff; }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#0a1330;
-    font-family:-apple-system,Roboto,"Segoe UI",sans-serif; color:#fff; touch-action:none; }
-  #sky { position:fixed; inset:0; background:linear-gradient(180deg,var(--sky1),var(--sky2)); transition:background .6s; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#05070f; touch-action:none;
+    font-family:-apple-system,Roboto,"Segoe UI",sans-serif; color:#eaf0ff; }
   #c { position:fixed; inset:0; display:block; }
-  .hud { position:fixed; left:0; right:0; pointer-events:none; z-index:10; }
-  #top { top:0; padding:10px 12px; display:flex; gap:8px; align-items:center; }
-  .pill { background:rgba(8,16,36,.62); border:1px solid rgba(255,255,255,.14); border-radius:22px;
-    padding:7px 13px; font-weight:800; font-size:15px; display:flex; align-items:center; gap:6px;
-    backdrop-filter:blur(6px); }
-  #spacer { flex:1; }
-  #back { pointer-events:auto; }
-  #goal { top:58px; text-align:center; font-weight:800; font-size:14px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
-  #bottom { bottom:0; padding:14px 12px calc(14px + env(safe-area-inset-bottom)); display:flex; gap:10px; }
-  .btn { pointer-events:auto; flex:1; background:#43c463; color:#08240f; border:none; border-radius:18px;
-    padding:15px 8px; font-weight:900; font-size:15px; box-shadow:0 6px 0 rgba(0,0,0,.18); }
-  .btn:active { transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.18); }
-  .btn.gold { background:#f2a33c; color:#3a2400; }
-  .btn.blue { background:#3aa0ff; color:#04203f; }
-  .btn:disabled { filter:grayscale(.6) brightness(.8); }
-  #banner { position:fixed; inset:0; display:none; z-index:30; align-items:center; justify-content:center;
-    flex-direction:column; gap:14px; background:rgba(6,12,28,.72); backdrop-filter:blur(4px); }
-  #banner h1 { font-size:30px; text-shadow:0 3px 10px rgba(0,0,0,.6); }
-  #boot { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:40;
-    background:#0a1330; font-weight:800; letter-spacing:.04em; }
+  .hud { position:fixed; z-index:10; }
+  /* top bar */
+  #top { top:0; left:0; right:0; display:flex; gap:8px; align-items:center; padding:10px 12px; pointer-events:none; }
+  .pill { pointer-events:auto; background:rgba(14,22,46,.7); border:1px solid rgba(140,170,255,.22);
+    border-radius:20px; padding:8px 14px; font-weight:800; font-size:14px; display:flex; gap:7px; align-items:center;
+    backdrop-filter:blur(7px); }
+  #flex { flex:1; }
+  /* selection pedestals readout */
+  #combo { top:54px; left:0; right:0; text-align:center; font-weight:800; font-size:16px; pointer-events:none;
+    text-shadow:0 2px 8px rgba(0,0,0,.6); }
+  #hint { top:84px; left:0; right:0; text-align:center; font-size:12.5px; color:#9fb0d8; pointer-events:none; }
+  /* inventory */
+  #inv { bottom:0; left:0; right:0; padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+    display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(0deg,rgba(5,7,15,.92),rgba(5,7,15,0));
+    -webkit-overflow-scrolling:touch; }
+  .chip { flex:0 0 auto; min-width:74px; background:rgba(20,30,58,.92); border:2px solid rgba(150,180,255,.18);
+    border-radius:16px; padding:9px 6px 7px; text-align:center; }
+  .chip.sel { border-color:#ffd24d; box-shadow:0 0 0 2px rgba(255,210,77,.35); transform:translateY(-4px); }
+  .chip .e { font-size:30px; line-height:1.05; }
+  .chip .n { font-size:10.5px; font-weight:700; color:#cfe; margin-top:2px; max-width:78px; }
+  /* discovery reveal */
+  #reveal { inset:0; display:none; z-index:30; align-items:center; justify-content:center; flex-direction:column;
+    gap:6px; background:radial-gradient(circle at 50% 42%,rgba(40,60,130,.5),rgba(4,6,14,.86)); backdrop-filter:blur(3px); pointer-events:auto; }
+  #revKicker { font-size:13px; letter-spacing:.22em; color:#ffd24d; font-weight:800; }
+  #revEmoji { font-size:92px; filter:drop-shadow(0 8px 30px rgba(120,160,255,.6)); animation:pop .5s ease; }
+  @keyframes pop { 0%{transform:scale(.2);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  #revName { font-size:28px; font-weight:900; }
+  #revEra { font-size:12px; color:#9fb0d8; letter-spacing:.08em; }
+  #revLore { max-width:80%; text-align:center; font-style:italic; color:#cfe; margin-top:8px; font-size:14px; }
+  .go { margin-top:18px; pointer-events:auto; background:#ffd24d; color:#2a2000; border:none; border-radius:16px;
+    padding:13px 30px; font-weight:900; font-size:16px; box-shadow:0 6px 0 rgba(0,0,0,.2); }
+  .go:active { transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  /* codex overlay */
+  #codex { inset:0; display:none; z-index:35; background:rgba(5,8,18,.96); padding:16px; overflow-y:auto; }
+  #codex h2 { text-align:center; font-size:20px; margin:6px 0 2px; }
+  #codex .sub { text-align:center; color:#9fb0d8; font-size:12px; margin-bottom:12px; }
+  #grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:8px; }
+  .cell { background:rgba(20,30,58,.8); border:1px solid rgba(150,180,255,.16); border-radius:14px; padding:10px 4px; text-align:center; }
+  .cell.lock { opacity:.5; }
+  .cell .e { font-size:30px; } .cell .n { font-size:10px; margin-top:3px; color:#cfe; }
+  #codexClose { position:sticky; bottom:6px; display:block; width:100%; margin-top:14px; }
+  /* intro story */
+  #intro { inset:0; display:flex; z-index:40; background:#05070f; align-items:center; justify-content:center; flex-direction:column; padding:26px; text-align:center; }
+  #intro h1 { font-size:30px; font-weight:900; letter-spacing:.04em; margin-bottom:4px; }
+  #intro .yr { color:#ffd24d; font-weight:800; letter-spacing:.3em; margin-bottom:18px; }
+  #intro p { max-width:560px; color:#c7d4f5; line-height:1.6; font-size:15px; margin-bottom:10px; }
+  #intro .em { color:#fff; font-weight:700; }
+  #boot { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:50; background:#05070f; font-weight:800; }
 </style>
 </head>
 <body>
-  <div id="sky"></div>
   <canvas id="c"></canvas>
 
   <div class="hud" id="top">
     <button class="pill" id="back">◀</button>
-    <div class="pill">🪵 <span id="res">0</span></div>
-    <div class="pill">👷 <span id="pop">0</span></div>
-    <div class="pill">🐛 <span id="pests">0</span></div>
-    <div id="spacer"></div>
-    <div class="pill" id="world">Konyha</div>
+    <button class="pill" id="codexBtn">📜 Kódex <span id="cx">0/0</span></button>
+    <div id="flex"></div>
+    <div class="pill">🧩 <span id="core">0%</span></div>
   </div>
 
-  <div class="hud" id="goal">Gyűjts nyersanyagot, építs egységeket, és tisztítsd ki a kártevőket!</div>
+  <div class="hud" id="combo">Válassz két elemet</div>
+  <div class="hud" id="hint">Koppints két elemre lent — hátha új találmány születik</div>
 
-  <div class="hud" id="bottom">
-    <button class="btn" id="hire">👷 Munkás<br><small id="hireCost">15</small></button>
-    <button class="btn blue" id="tower">🗼 Védőtorony<br><small id="towerCost">40</small></button>
-    <button class="btn gold" id="rally">⚔️ Roham</button>
+  <div class="hud" id="inv"></div>
+
+  <div class="hud" id="reveal">
+    <div id="revKicker">ÚJ FELFEDEZÉS</div>
+    <div id="revEmoji">⚙️</div>
+    <div id="revName">—</div>
+    <div id="revEra">—</div>
+    <div id="revLore">—</div>
+    <button class="go" id="revBtn">TOVÁBB</button>
   </div>
 
-  <div id="banner"><h1 id="bannerTxt"></h1><button class="btn gold" id="bannerBtn" style="max-width:240px">TOVÁBB</button></div>
-  <div id="boot">3D világ betöltése…</div>
+  <div class="hud" id="codex">
+    <h2>📜 Codex of Humanity</h2>
+    <div class="sub" id="codexSub">0 / 0 felfedezve</div>
+    <div id="grid"></div>
+    <button class="go" id="codexClose">BEZÁR</button>
+  </div>
+
+  <div id="intro">
+    <div class="yr">2158</div>
+    <h1>MicroMasters</h1>
+    <p>Az emberiség eltűnt. Nem háború, nem vírus — csak <span class="em">eltűntek</span>.</p>
+    <p>Egyetlen dolog maradt: a <span class="em">Master Core</span>, az emberi tudás őrzője. De a Core összetört, és emlékezete ezernyi szilánkra hullott szét a világban.</p>
+    <p>A te feladatod: <span class="em">újraépíteni az egész emberi civilizációt</span> — a kőtől a csillagokig. Egyesíts elemeket, fedezz fel találmányokat, és töltsd ki a Kódexet.</p>
+    <button class="go" id="introBtn" style="margin-top:22px">KEZDÉS</button>
+  </div>
+
+  <div id="boot">Betöltés…</div>
 
   <script src="three.min.js"></script>
   <script src="game.js"></script>
