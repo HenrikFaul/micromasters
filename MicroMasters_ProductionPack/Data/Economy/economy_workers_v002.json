@@ -1,0 +1,17 @@
+{
+  "workers": {
+    "miner": {
+      "base_output": 12,
+      "merge_multiplier": 1.75
+    },
+    "logger": {
+      "base_output": 10
+    },
+    "carrier": {
+      "base_speed": 1.0
+    },
+    "scientist": {
+      "research_bonus": 0.08
+    }
+  }
+}

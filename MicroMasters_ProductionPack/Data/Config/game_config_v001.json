@@ -1,0 +1,10 @@
+{
+  "platforms": [
+    "Android",
+    "iOS"
+  ],
+  "engine": "Unity 2022+",
+  "target_apk_size_mb": "<120",
+  "art_style": "stylized low-poly premium mobile",
+  "import_notes": "PNG transparency enabled, PPU 100, UI sprite mode"
+}

@@ -1,0 +1,13 @@
+{
+  "heroes": [
+    "captain_spark",
+    "nova_chief",
+    "gem_baron",
+    "tiny_queen"
+  ],
+  "rarities": [
+    "rare",
+    "epic",
+    "mythic"
+  ]
+}

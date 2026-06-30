@@ -1,0 +1,9 @@
+{
+  "mounts": [
+    "cloud_deer",
+    "crystal_yak",
+    "jungle_lizard",
+    "candy_pony"
+  ],
+  "speed_bonus_enabled": true
+}

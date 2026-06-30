@@ -1,0 +1,9 @@
+{
+  "tiers": [
+    "bronze",
+    "silver",
+    "gold",
+    "master"
+  ],
+  "weekly_reset": true
+}

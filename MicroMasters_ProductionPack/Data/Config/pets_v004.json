@@ -1,0 +1,11 @@
+{
+  "pets": [
+    "foxbit",
+    "gemcat",
+    "cloudpup",
+    "leafbun",
+    "sparkowl"
+  ],
+  "levels": 10,
+  "fusion_enabled": true
+}

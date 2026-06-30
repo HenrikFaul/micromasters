@@ -1,0 +1,7 @@
+{
+  "prestige": {
+    "unlock_level": 25,
+    "bonus_per_reset": 0.12,
+    "currency": "time_dust"
+  }
+}

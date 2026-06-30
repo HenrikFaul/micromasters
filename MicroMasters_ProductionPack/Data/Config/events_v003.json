@@ -1,0 +1,8 @@
+{
+  "events": [
+    "boss_week",
+    "gold_rain",
+    "portal_rush"
+  ],
+  "duration_hours": 72
+}

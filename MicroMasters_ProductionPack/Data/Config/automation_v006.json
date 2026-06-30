@@ -1,0 +1,9 @@
+{
+  "systems": [
+    "auto_collect",
+    "auto_merge",
+    "auto_build",
+    "auto_upgrade"
+  ],
+  "unlock_level": 8
+}

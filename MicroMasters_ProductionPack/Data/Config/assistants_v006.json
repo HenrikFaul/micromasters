@@ -1,0 +1,12 @@
+{
+  "assistants": [
+    "auto_miner",
+    "auto_builder",
+    "quest_scribe"
+  ],
+  "rarities": [
+    "common",
+    "rare",
+    "epic"
+  ]
+}

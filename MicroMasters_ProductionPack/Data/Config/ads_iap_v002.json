@@ -1,0 +1,12 @@
+{
+  "rewarded": [
+    "double_rewards",
+    "instant_upgrade",
+    "extra_energy"
+  ],
+  "iap": [
+    "remove_ads",
+    "starter_pack",
+    "season_pass"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "worlds": [
+    "kitchen",
+    "bathroom",
+    "garden",
+    "space"
+  ],
+  "unlock_order": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "offline_supported": true
+}

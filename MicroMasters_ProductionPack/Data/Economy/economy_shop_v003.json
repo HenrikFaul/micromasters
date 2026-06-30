@@ -1,0 +1,9 @@
+{
+  "offers": [
+    "starter",
+    "remove_ads",
+    "season_pass",
+    "gem_vault"
+  ],
+  "rotation_hours": 8
+}

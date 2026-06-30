@@ -1,0 +1,9 @@
+{
+  "bosses": [
+    "sugar_titan",
+    "desert_colossus",
+    "frost_king",
+    "void_worm"
+  ],
+  "weekly_rotation": true
+}

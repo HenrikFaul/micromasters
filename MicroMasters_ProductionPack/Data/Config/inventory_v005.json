@@ -1,0 +1,12 @@
+{
+  "slots": 40,
+  "stack_limits": {
+    "resource": 9999,
+    "relic": 1
+  },
+  "sort_modes": [
+    "rarity",
+    "type",
+    "newest"
+  ]
+}

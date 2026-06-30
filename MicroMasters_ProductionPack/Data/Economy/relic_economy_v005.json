@@ -1,0 +1,9 @@
+{
+  "rarities": [
+    "common",
+    "rare",
+    "epic",
+    "mythic"
+  ],
+  "upgrade_cost_base": 120
+}

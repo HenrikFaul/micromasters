@@ -1,0 +1,8 @@
+{
+  "enemies": [
+    "dust_goblin",
+    "time_imp",
+    "coin_thief"
+  ],
+  "raid_duration_seconds": 90
+}

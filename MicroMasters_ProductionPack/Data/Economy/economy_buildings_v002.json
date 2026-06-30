@@ -1,0 +1,14 @@
+{
+  "buildings": {
+    "mine": {
+      "base_cost": 100,
+      "cost_mult": 1.32
+    },
+    "lumber_mill": {
+      "base_cost": 120
+    },
+    "research_lab": {
+      "base_cost": 250
+    }
+  }
+}

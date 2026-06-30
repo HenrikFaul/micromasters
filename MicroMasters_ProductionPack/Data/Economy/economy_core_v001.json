@@ -1,0 +1,25 @@
+{
+  "game": "MicroMasters",
+  "version": "0.1.0",
+  "currencies": [
+    "gold",
+    "gems",
+    "energy",
+    "tickets"
+  ],
+  "worker_merge_cost_curve": {
+    "base": 25,
+    "multiplier": 1.18
+  },
+  "building_upgrade_curve": {
+    "base": 100,
+    "multiplier": 1.32
+  },
+  "offline_earnings_cap_hours": 8,
+  "rewarded_ads": [
+    "double_offline",
+    "instant_build",
+    "bonus_chest",
+    "extra_energy"
+  ]
+}

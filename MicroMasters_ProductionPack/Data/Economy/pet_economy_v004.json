@@ -1,0 +1,7 @@
+{
+  "pet_food_cost": 25,
+  "fusion_cost_curve": {
+    "base": 100,
+    "multiplier": 1.28
+  }
+}

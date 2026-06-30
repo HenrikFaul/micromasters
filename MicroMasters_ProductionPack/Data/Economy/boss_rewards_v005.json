@@ -1,0 +1,12 @@
+{
+  "tiers": [
+    "bronze",
+    "silver",
+    "gold",
+    "diamond"
+  ],
+  "reward_curve": {
+    "base": 250,
+    "multiplier": 1.45
+  }
+}
