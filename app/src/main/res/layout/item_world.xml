@@ -10,14 +10,28 @@
     android:orientation="horizontal"
     android:padding="12dp">
 
-    <TextView
-        android:id="@+id/worldThumb"
+    <FrameLayout
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:background="@drawable/bg_world_thumb"
-        android:gravity="center"
-        android:text="🍳"
-        android:textSize="30sp" />
+        android:clipToOutline="true">
+
+        <ImageView
+            android:id="@+id/worldThumbImg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/app_name"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/worldThumb"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="🍳"
+            android:textSize="30sp" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"

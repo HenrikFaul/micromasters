@@ -2,6 +2,8 @@ package com.micromasters.game
 
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -14,6 +16,18 @@ class WorldSelectActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityWorldSelectBinding
     private var dailyChecked = false
+    private val thumbCache = HashMap<Int, Bitmap?>()
+
+    /** Downsampled, cached scene thumbnail for a world card (null => use the emoji). */
+    private fun worldThumb(resId: Int): Bitmap? {
+        if (resId == 0) return null
+        if (thumbCache.containsKey(resId)) return thumbCache[resId]
+        val bmp = try {
+            BitmapFactory.decodeResource(resources, resId, BitmapFactory.Options().apply { inSampleSize = 4 })
+        } catch (e: Throwable) { null }
+        thumbCache[resId] = bmp
+        return bmp
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,6 +172,16 @@ class WorldSelectActivity : AppCompatActivity() {
             val ws = s.world(def.id)
             item.worldThumb.text = def.emoji
             item.worldName.text = getString(def.nameRes)
+
+            val thumb = worldThumb(def.sceneRes)
+            if (thumb != null) {
+                item.worldThumbImg.setImageBitmap(thumb)
+                item.worldThumbImg.visibility = View.VISIBLE
+                item.worldThumb.visibility = View.GONE
+            } else {
+                item.worldThumbImg.visibility = View.GONE
+                item.worldThumb.visibility = View.VISIBLE
+            }
 
             if (ws.unlocked) {
                 item.worldLock.visibility = View.GONE
