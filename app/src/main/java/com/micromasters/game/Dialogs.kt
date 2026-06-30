@@ -77,11 +77,19 @@ object Dialogs {
             }
         }
 
-        fun newRow(emoji: String, name: String, sub: String): ItemUpgradeBinding {
+        fun newRow(emoji: String, name: String, sub: String, artRes: Int = 0): ItemUpgradeBinding {
             val r = ItemUpgradeBinding.inflate(act.layoutInflater, v.upgradeList, false)
-            r.upEmoji.text = emoji
             r.upName.text = name
             r.upSub.text = sub
+            if (artRes != 0) {
+                r.upImg.setImageResource(artRes)
+                r.upImg.visibility = View.VISIBLE
+                r.upEmoji.visibility = View.GONE
+            } else {
+                r.upEmoji.text = emoji
+                r.upImg.visibility = View.GONE
+                r.upEmoji.visibility = View.VISIBLE
+            }
             return r
         }
 
@@ -172,7 +180,7 @@ object Dialogs {
                         else act.getString(R.string.level_fmt, lvl) + " · +" + Format.short(contrib) + "/mp"
                         val sub = baseSub + roiLine(s.unitCost(ws, i), s.unitProdDelta(ws, i))
                         val name = if (i == best) act.getString(d.nameRes) + "  ⭐" else act.getString(d.nameRes)
-                        val r = newRow(d.emoji, name, sub)
+                        val r = newRow(d.emoji, name, sub, d.artRes)
                         val maxN = s.maxAffordableUnit(ws, i)
                         val n = qtyFor(maxN)
                         val cost = if (n <= 1) s.unitCost(ws, i) else s.bulkUnitCost(ws, i, n)
@@ -204,7 +212,7 @@ object Dialogs {
                         val sub = act.getString(R.string.level_fmt, lvl) + " · " + act.getString(d.descRes) + extra +
                             roiLine(s.buildingCost(ws, i), s.buildingProdDelta(ws, i))
                         val name = if (i == best) act.getString(d.nameRes) + "  ⭐" else act.getString(d.nameRes)
-                        val r = newRow(d.emoji, name, sub)
+                        val r = newRow(d.emoji, name, sub, d.artRes)
                         val maxN = s.maxAffordableBuilding(ws, i)
                         val n = qtyFor(maxN)
                         val cost = if (n <= 1) s.buildingCost(ws, i) else s.bulkBuildingCost(ws, i, n)

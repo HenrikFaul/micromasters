@@ -9,14 +9,29 @@
     android:orientation="horizontal"
     android:padding="12dp">
 
-    <TextView
-        android:id="@+id/upEmoji"
+    <FrameLayout
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:background="@drawable/bg_world_thumb"
-        android:gravity="center"
-        android:text="🐜"
-        android:textSize="24sp" />
+        android:clipToOutline="true">
+
+        <ImageView
+            android:id="@+id/upImg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:contentDescription="@string/app_name"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/upEmoji"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="🐜"
+            android:textSize="24sp" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"

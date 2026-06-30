@@ -8,7 +8,8 @@ class UnitDef(
     val emoji: String,
     val baseProd: Double,   // coins/sec contributed per level
     val baseCost: Double,   // cost of the first level (hire)
-    val growth: Double = 1.18
+    val growth: Double = 1.18,
+    val artRes: Int = 0     // character sprite (0 = use the emoji)
 )
 
 class BuildingDef(
@@ -17,7 +18,8 @@ class BuildingDef(
     val descRes: Int,
     val emoji: String,
     val baseCost: Double,
-    val growth: Double
+    val growth: Double,
+    val artRes: Int = 0     // building sprite (0 = use the emoji)
 )
 
 enum class BoostKind { MULTIPLIER, FILL, AD }
@@ -85,17 +87,17 @@ object Defs {
 
     // NOTE: every emoji below is Unicode <= 7 (renders on Android 8.0+, no EmojiCompat needed).
     val UNITS = listOf(
-        UnitDef("miner", R.string.unit_miner, "🐜", baseProd = 0.9, baseCost = 15.0),
-        UnitDef("carrier", R.string.unit_carrier, "📦", baseProd = 2.4, baseCost = 90.0),
-        UnitDef("guard", R.string.unit_guard, "🛡️", baseProd = 9.0, baseCost = 1000.0),
-        UnitDef("scientist", R.string.unit_scientist, "🔬", baseProd = 32.0, baseCost = 7200.0)
+        UnitDef("miner", R.string.unit_miner, "🐜", baseProd = 0.9, baseCost = 15.0, artRes = R.drawable.sprite_unit_miner),
+        UnitDef("carrier", R.string.unit_carrier, "📦", baseProd = 2.4, baseCost = 90.0, artRes = R.drawable.sprite_unit_carrier),
+        UnitDef("guard", R.string.unit_guard, "🛡️", baseProd = 9.0, baseCost = 1000.0, artRes = R.drawable.sprite_unit_guard),
+        UnitDef("scientist", R.string.unit_scientist, "🔬", baseProd = 32.0, baseCost = 7200.0, artRes = R.drawable.sprite_unit_scientist)
     )
 
     val BUILDINGS = listOf(
-        BuildingDef("warehouse", R.string.bld_warehouse, R.string.bld_warehouse_desc, "📦", 150.0, 1.45),
-        BuildingDef("workshop", R.string.bld_workshop, R.string.bld_workshop_desc, "🔧", 420.0, 1.55),
-        BuildingDef("lab", R.string.bld_lab, R.string.bld_lab_desc, "💡", 2600.0, 1.7),
-        BuildingDef("refinery", R.string.bld_refinery, R.string.bld_refinery_desc, "⚗️", 800.0, 1.6)
+        BuildingDef("warehouse", R.string.bld_warehouse, R.string.bld_warehouse_desc, "📦", 150.0, 1.45, artRes = R.drawable.sprite_bld_warehouse),
+        BuildingDef("workshop", R.string.bld_workshop, R.string.bld_workshop_desc, "🔧", 420.0, 1.55, artRes = R.drawable.sprite_bld_workshop),
+        BuildingDef("lab", R.string.bld_lab, R.string.bld_lab_desc, "💡", 2600.0, 1.7, artRes = R.drawable.sprite_bld_lab),
+        BuildingDef("refinery", R.string.bld_refinery, R.string.bld_refinery_desc, "⚗️", 800.0, 1.6, artRes = R.drawable.sprite_bld_refinery)
     )
 
     val BOOSTS = listOf(
