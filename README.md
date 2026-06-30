@@ -3,9 +3,16 @@
 **Hyper-casual · Idle · Strategy** — natív Android játék Kotlinban, a mellékelt
 design (MICROMASTERS koncepció) alapján megvalósítva.
 
-> Építsd, fejleszd és irányítsd apró egységeidet mikroszkopikus világokban.
-> Gyűjts erőforrásokat, fejleszd egységeidet és hódíts meg új területeket –
-> mindezt egyszerű, intuitív vezérléssel.
+> Egyesíts elemeket, fedezd fel az emberi tudás Kódexét, győzd le a korszakok
+> Mastereit, toborozz hősöket és küldd őket expedíciókra — építsd újra a
+> civilizációt a kőtől a csillagokig. (Részletes működés: [`GAMEPLAY.md`](GAMEPLAY.md).)
+
+---
+
+## 🔒 Adatvédelem
+
+A MicroMasters **nem gyűjt semmilyen személyes adatot**, teljesen **offline**
+működik, és **nincs internet-hozzáférése**. Részletek: [`PRIVACY.md`](PRIVACY.md).
 
 ---
 

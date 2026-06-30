@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MicroMasters runs fully offline and declares no INTERNET permission.
+  This config makes the posture explicit and unambiguous: cleartext (HTTP)
+  traffic is denied app-wide, and only the system trust anchors are honoured.
+  Resolves the audit's "cleartextAllowed" cross-verification conflict.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

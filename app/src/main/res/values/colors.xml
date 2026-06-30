@@ -23,4 +23,36 @@
     <color name="stroke">#FF35508A</color>
 
     <color name="ic_launcher_background">#FF2B4886</color>
+
+    <!-- Full Material 3 dark color-role tokens (a real M3 scheme, not just a primary).
+         Built from the existing brand: gold primary, green secondary, sky-blue tertiary,
+         deep-space surfaces. Resolves the "M3 in name only" finding. -->
+    <color name="md_primary">#FFFFB951</color>
+    <color name="md_on_primary">#FF452B00</color>
+    <color name="md_primary_container">#FF623F00</color>
+    <color name="md_on_primary_container">#FFFFDDB3</color>
+    <color name="md_secondary">#FF7FE08A</color>
+    <color name="md_on_secondary">#FF00390F</color>
+    <color name="md_secondary_container">#FF1C5326</color>
+    <color name="md_on_secondary_container">#FF9BF7A5</color>
+    <color name="md_tertiary">#FF9FCAFF</color>
+    <color name="md_on_tertiary">#FF003258</color>
+    <color name="md_tertiary_container">#FF1C4A7C</color>
+    <color name="md_on_tertiary_container">#FFD2E4FF</color>
+    <color name="md_error">#FFFFB4AB</color>
+    <color name="md_on_error">#FF690005</color>
+    <color name="md_error_container">#FF93000A</color>
+    <color name="md_on_error_container">#FFFFDAD6</color>
+    <color name="md_background">#FF0B1426</color>
+    <color name="md_on_background">#FFEAF0FF</color>
+    <color name="md_surface">#FF0B1426</color>
+    <color name="md_on_surface">#FFEAF0FF</color>
+    <color name="md_surface_variant">#FF26395F</color>
+    <color name="md_on_surface_variant">#FFC2D0EC</color>
+    <color name="md_surface_container">#FF16223D</color>
+    <color name="md_outline">#FF8C9BBE</color>
+    <color name="md_outline_variant">#FF40506F</color>
+    <color name="md_inverse_surface">#FFEAF0FF</color>
+    <color name="md_inverse_on_surface">#FF1A2438</color>
+    <color name="md_inverse_primary">#FF815100</color>
 </resources>

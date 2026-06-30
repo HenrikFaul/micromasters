@@ -50,7 +50,7 @@ object Sound {
     fun sfx(ctx: Context, resId: Int) {
         if (!enabled) return
         init(ctx)
-        try { soundIds[resId]?.let { pool?.play(it, 1f, 1f, 1, 0, 1f) } } catch (e: Throwable) {}
+        try { soundIds[resId]?.let { pool?.play(it, 1f, 1f, 1, 0, 1f) } } catch (e: Throwable) { /* best-effort SFX: never let audio crash gameplay */ }
     }
 
     /** Start or resume the looping background music (no-op if disabled). */
@@ -65,12 +65,12 @@ object Sound {
                 music = m
             }
             if (!m.isPlaying) m.start()
-        } catch (e: Throwable) {}
+        } catch (e: Throwable) { /* best-effort music: a codec/IO failure must not break the game */ }
     }
 
     /** Pause music (call from Activity.onPause) so it stops when the app is backgrounded. */
     fun pauseMusic() {
-        try { music?.let { if (it.isPlaying) it.pause() } } catch (e: Throwable) {}
+        try { music?.let { if (it.isPlaying) it.pause() } } catch (e: Throwable) { /* best-effort pause: ignore if the player is in a bad state */ }
     }
 
     fun setEnabled(ctx: Context, on: Boolean) {
@@ -78,7 +78,7 @@ object Sound {
         try {
             ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_ON, on).apply()
-        } catch (e: Throwable) {}
+        } catch (e: Throwable) { /* best-effort persist: the toggle still applies in-memory this session */ }
         if (on) resumeMusic(ctx) else pauseMusic()
     }
 }
