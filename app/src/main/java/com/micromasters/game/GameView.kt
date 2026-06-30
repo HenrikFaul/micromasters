@@ -100,9 +100,18 @@ class GameView @JvmOverloads constructor(
             workerBitmap = try { BitmapFactory.decodeResource(resources, R.drawable.sprite_worker) } catch (e: Throwable) { null }
         }
         if (def.sceneRes != sceneResLoaded) {
-            sceneBitmap = if (def.sceneRes == 0) null
-                else try { BitmapFactory.decodeResource(resources, def.sceneRes) } catch (e: Throwable) { null }
+            val old = sceneBitmap
+            // Opaque full-scene backgrounds: half-resolution + RGB_565 (no alpha) keeps the
+            // decode cheap (~0.6 MB vs ~5 MB) so entering a world never janks the main thread.
+            sceneBitmap = if (def.sceneRes == 0) null else try {
+                val opts = BitmapFactory.Options().apply {
+                    inSampleSize = 2
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                }
+                BitmapFactory.decodeResource(resources, def.sceneRes, opts)
+            } catch (e: Throwable) { null }
             sceneResLoaded = def.sceneRes
+            if (old != null && old != sceneBitmap) old.recycle()
         }
     }
 
