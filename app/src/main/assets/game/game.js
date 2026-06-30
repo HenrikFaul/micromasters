@@ -67,6 +67,14 @@
     ['rocket','factory','fire'],['satellite','rocket','circuit'],['robot','ai','metal'],
     ['dyson','fusion','satellite'],['type3','dyson','ai'],
   ].forEach(([r,a,b]) => { R[[a,b].sort().join('+')] = r; });
+
+  // merge the expanded Codex (generated data.js): hundreds more inventions + Masters
+  let MASTERS = [];
+  if (window.MM_DATA) {
+    Object.assign(E, MM_DATA.elements || {});
+    (MM_DATA.recipes || []).forEach(([res, a, b]) => { if (res && a && b && E[res]) R[[a, b].sort().join('+')] = res; });
+    MASTERS = MM_DATA.masters || [];
+  }
   const TOTAL = Object.keys(E).length;
 
   // ---------- state ----------
@@ -241,6 +249,26 @@
   }
   el('codexBtn').onclick = () => { renderCodex(); el('codex').style.display = 'block'; };
   el('codexClose').onclick = () => { el('codex').style.display = 'none'; };
+
+  // Masters (era bosses): strategic gates beaten by having discovered the required tech
+  function renderMasters() {
+    const g = el('mastersGrid'); g.innerHTML = '';
+    let ready = 0;
+    for (const m of MASTERS) {
+      const req = m.req || [];
+      const ok = req.length > 0 && req.every(id => disc.has(id));
+      if (ok) ready++;
+      const reqHtml = req.map(id => '<span style="opacity:' + (disc.has(id) ? 1 : .3) + '">' + ((E[id] && E[id].e) || '❓') + '</span>').join(' ');
+      const card = document.createElement('div'); card.className = 'mcard' + (ok ? ' ready' : '');
+      card.innerHTML = '<div class="me">' + m.emoji + '</div><div class="mb"><div class="mn">' + m.name + '</div>' +
+        '<div class="mera">' + m.era + '</div><div class="mmech">' + (m.mechanic || '') + '</div>' +
+        '<div class="mreq">' + reqHtml + ' &nbsp; ' + (ok ? '<b style="color:#7fe08a">LEGYŐZHETŐ ⚔️</b>' : '<span style="color:#9fb0d8">zárva 🔒</span>') + '</div></div>';
+      g.appendChild(card);
+    }
+    el('mastersSub').textContent = ready + ' / ' + MASTERS.length + ' Master legyőzhető — fedezd fel a hiányzó technológiákat';
+  }
+  el('mastersBtn').onclick = () => { renderMasters(); el('masters').style.display = 'block'; };
+  el('mastersClose').onclick = () => { el('masters').style.display = 'none'; };
 
   el('introBtn').onclick = () => { el('intro').style.display = 'none'; };
   el('back').onclick = () => { save(); if (window.Android && window.Android.back) window.Android.back(); };

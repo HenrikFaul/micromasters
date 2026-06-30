@@ -49,7 +49,20 @@
   .cell { background:rgba(20,30,58,.8); border:1px solid rgba(150,180,255,.16); border-radius:14px; padding:10px 4px; text-align:center; }
   .cell.lock { opacity:.5; }
   .cell .e { font-size:30px; } .cell .n { font-size:10px; margin-top:3px; color:#cfe; }
-  #codexClose { position:sticky; bottom:6px; display:block; width:100%; margin-top:14px; }
+  #codexClose, #mastersClose { position:sticky; bottom:6px; display:block; width:100%; margin-top:14px; }
+  /* masters overlay */
+  #masters { inset:0; display:none; z-index:36; background:rgba(5,8,18,.97); padding:16px; overflow-y:auto; }
+  #masters h2 { text-align:center; font-size:20px; margin:6px 0 2px; }
+  #masters .sub { text-align:center; color:#9fb0d8; font-size:12px; margin-bottom:12px; }
+  .mcard { display:flex; gap:10px; align-items:center; background:rgba(20,30,58,.8); border:1px solid rgba(150,180,255,.16);
+    border-radius:14px; padding:10px; margin-bottom:8px; }
+  .mcard.ready { border-color:#7fe08a; box-shadow:0 0 0 1px rgba(127,224,138,.3); }
+  .mcard .me { font-size:38px; flex:0 0 auto; }
+  .mcard .mb { flex:1; min-width:0; }
+  .mcard .mn { font-weight:800; font-size:15px; }
+  .mcard .mera { font-size:11px; color:#ffd24d; letter-spacing:.06em; }
+  .mcard .mmech { font-size:12px; color:#c7d4f5; margin:3px 0; }
+  .mcard .mreq { font-size:18px; }
   /* intro story */
   #intro { inset:0; display:flex; z-index:40; background:#05070f; align-items:center; justify-content:center; flex-direction:column; padding:26px; text-align:center; }
   #intro h1 { font-size:30px; font-weight:900; letter-spacing:.04em; margin-bottom:4px; }
@@ -64,7 +77,8 @@
 
   <div class="hud" id="top">
     <button class="pill" id="back">◀</button>
-    <button class="pill" id="codexBtn">📜 Kódex <span id="cx">0/0</span></button>
+    <button class="pill" id="codexBtn">📜 <span id="cx">0/0</span></button>
+    <button class="pill" id="mastersBtn">⚔️ Masterek</button>
     <div id="flex"></div>
     <div class="pill">🧩 <span id="core">0%</span></div>
   </div>
@@ -90,6 +104,13 @@
     <button class="go" id="codexClose">BEZÁR</button>
   </div>
 
+  <div class="hud" id="masters">
+    <h2>⚔️ A Korszakok Masterei</h2>
+    <div class="sub" id="mastersSub">0 / 0</div>
+    <div id="mastersGrid"></div>
+    <button class="go" id="mastersClose">BEZÁR</button>
+  </div>
+
   <div id="intro">
     <div class="yr">2158</div>
     <h1>MicroMasters</h1>
@@ -102,6 +123,7 @@
   <div id="boot">Betöltés…</div>
 
   <script src="three.min.js"></script>
+  <script src="data.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
