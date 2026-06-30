@@ -65,8 +65,7 @@ class WorldDef(
     val nodes: Array<String>,
     val essenceName: Int,
     val essenceEmoji: String,
-    val twist: TwistDef = TwistDef(),
-    val sceneRes: Int = 0   // full-scene background drawable (0 = use the gradient fallback)
+    val twist: TwistDef = TwistDef()
 )
 
 class QuestDef(val nameRes: Int, val emoji: String, val target: Long, val rewardGems: Int)
@@ -128,8 +127,7 @@ object Defs {
             ground = 0xFF8A5A2E.toInt(), accent = 0xFFFFD27A.toInt(),
             worker = "🐜", nodes = arrayOf("🍞", "🍅", "🥚", "🍶", "🍪"),
             essenceName = R.string.essence_kitchen, essenceEmoji = "🌾",
-            twist = TwistDef(TwistKind.TERRITORIES, 0.04, 0.36, R.string.twist_kitchen, "🍳"),
-            sceneRes = R.drawable.bg_scene_kitchen
+            twist = TwistDef(TwistKind.TERRITORIES, 0.04, 0.36, R.string.twist_kitchen, "🍳")
         ),
         WorldDef(
             "bathroom", R.string.world_bathroom, "🛁",
@@ -139,8 +137,7 @@ object Defs {
             ground = 0xFF2C8A93.toInt(), accent = 0xFFBFF3FA.toInt(),
             worker = "🐌", nodes = arrayOf("💧", "🛁", "🚿", "💧", "🔵"),
             essenceName = R.string.essence_bathroom, essenceEmoji = "💧",
-            twist = TwistDef(TwistKind.WAREHOUSE, 0.03, 0.45, R.string.twist_bathroom, "💧"),
-            sceneRes = R.drawable.bg_scene_bathroom
+            twist = TwistDef(TwistKind.WAREHOUSE, 0.03, 0.45, R.string.twist_bathroom, "💧")
         ),
         WorldDef(
             "garden", R.string.world_garden, "🌷",
@@ -150,8 +147,7 @@ object Defs {
             ground = 0xFF3C8A3C.toInt(), accent = 0xFFE6FFC2.toInt(),
             worker = "🐛", nodes = arrayOf("🌱", "🍄", "🌷", "🐞", "🍀"),
             essenceName = R.string.essence_garden, essenceEmoji = "🌼",
-            twist = TwistDef(TwistKind.REFINES, 0.05, 0.50, R.string.twist_garden, "🌷"),
-            sceneRes = R.drawable.bg_scene_garden
+            twist = TwistDef(TwistKind.REFINES, 0.05, 0.50, R.string.twist_garden, "🌷")
         ),
         WorldDef(
             "spaceship", R.string.world_spaceship, "🚀",
@@ -161,8 +157,7 @@ object Defs {
             ground = 0xFF243056.toInt(), accent = 0xFF9FB8FF.toInt(),
             worker = "👽", nodes = arrayOf("🔩", "🔋", "💾", "⚙️", "🛰️"),
             essenceName = R.string.essence_spaceship, essenceEmoji = "⚛️",
-            twist = TwistDef(TwistKind.STARS, 0.06, 0.60, R.string.twist_spaceship, "⭐"),
-            sceneRes = R.drawable.bg_scene_spaceship
+            twist = TwistDef(TwistKind.STARS, 0.06, 0.60, R.string.twist_spaceship, "⭐")
         ),
         WorldDef(
             "workshop", R.string.world_workshop, "🔧",
@@ -172,8 +167,7 @@ object Defs {
             ground = 0xFF55504A.toInt(), accent = 0xFFF2A33C.toInt(),
             worker = "🐝", nodes = arrayOf("🔩", "🔧", "🔋", "⚙️", "📎"),
             essenceName = R.string.essence_workshop, essenceEmoji = "🔩",
-            twist = TwistDef(TwistKind.BUILDING_SYNERGY, 0.05, 0.50, R.string.twist_workshop, "⚙️"),
-            sceneRes = R.drawable.bg_scene_workshop
+            twist = TwistDef(TwistKind.BUILDING_SYNERGY, 0.05, 0.50, R.string.twist_workshop, "⚙️")
         ),
         WorldDef(
             "fridge", R.string.world_fridge, "❄️",
@@ -183,8 +177,7 @@ object Defs {
             ground = 0xFF3C7E96.toInt(), accent = 0xFFE8FAFF.toInt(),
             worker = "🐧", nodes = arrayOf("❄️", "💧", "🔵", "💎", "🍦"),
             essenceName = R.string.essence_fridge, essenceEmoji = "❄️",
-            twist = TwistDef(TwistKind.LAB, 0.04, 0.40, R.string.twist_fridge, "❄️"),
-            sceneRes = R.drawable.bg_scene_fridge
+            twist = TwistDef(TwistKind.LAB, 0.04, 0.40, R.string.twist_fridge, "❄️")
         ),
         WorldDef(
             "toybox", R.string.world_toybox, "🎲",
@@ -194,8 +187,7 @@ object Defs {
             ground = 0xFF3A7BD5.toInt(), accent = 0xFFFFF0A0.toInt(),
             worker = "🐢", nodes = arrayOf("🎲", "🎈", "🎯", "🎁", "🔔"),
             essenceName = R.string.essence_toybox, essenceEmoji = "✨",
-            twist = TwistDef(TwistKind.UNITS_TOTAL, 0.01, 0.40, R.string.twist_toybox, "🎈"),
-            sceneRes = R.drawable.bg_scene_toybox
+            twist = TwistDef(TwistKind.UNITS_TOTAL, 0.01, 0.40, R.string.twist_toybox, "🎈")
         )
     )
 

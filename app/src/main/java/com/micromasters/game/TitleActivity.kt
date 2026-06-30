@@ -21,16 +21,6 @@ class TitleActivity : AppCompatActivity() {
             b = ActivityTitleBinding.inflate(layoutInflater)
             setContentView(b.root)
 
-            // Decode the hero background at half-res / RGB_565 to keep startup light.
-            try {
-                val opts = android.graphics.BitmapFactory.Options().apply {
-                    inSampleSize = 2
-                    inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
-                }
-                android.graphics.BitmapFactory.decodeResource(resources, R.drawable.bg_menu, opts)
-                    ?.let { b.titleBg.setImageBitmap(it) }
-            } catch (e: Throwable) { /* no background — the scrim still looks fine */ }
-
             // Warm up / migrate the save so the first gameplay frame is instant.
             Game.get(this)
 
