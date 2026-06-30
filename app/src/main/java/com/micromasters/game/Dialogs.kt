@@ -657,7 +657,9 @@ object Dialogs {
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         })
 
-        val dialog = AlertDialog.Builder(act).setView(root).create()
+        // The storefront has many rows now — make it scrollable so nothing clips on small screens.
+        val scroller = android.widget.ScrollView(act).apply { addView(root) }
+        val dialog = AlertDialog.Builder(act).setView(scroller).create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         fun addRow(emoji: String, name: String, sub: String, btn: String, gem: Boolean, action: () -> Unit) {
