@@ -74,6 +74,7 @@ class GameActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Sound.resumeMusic(this)
         s = Game.get(this)
         val def = Defs.world(s.activeWorld)
         b.worldTitle.text = def.emoji + "  " + getString(def.nameRes)
@@ -101,6 +102,7 @@ class GameActivity : AppCompatActivity() {
         super.onPause()
         handler.removeCallbacks(ticker)
         b.gameView.pause()
+        Sound.pauseMusic()
         NumAnim.cancelAll()
         s.comboHits = 0; s.comboExpiry = 0L   // drop the transient combo chain on background
         Game.save(this)
@@ -140,6 +142,7 @@ class GameActivity : AppCompatActivity() {
         val r = s.collectActive(now, golden = false)
         if (r.amount > 0) {
             b.gameView.spawnCollect("+" + Format.short(r.amount))
+            Sound.sfx(this, if (r.crit) R.raw.sfx_mega else R.raw.sfx_collect)
             if (r.crit) b.gameView.spawnCrit(getString(R.string.crit_pop))
             b.btnCollect.performHapticFeedback(
                 if (r.crit) HapticFeedbackConstants.LONG_PRESS else HapticFeedbackConstants.VIRTUAL_KEY)
@@ -150,6 +153,7 @@ class GameActivity : AppCompatActivity() {
             b.gameView.shake()
             if (now - lastEmptyToast > 1500L) {
                 lastEmptyToast = now
+                Sound.sfx(this, R.raw.sfx_error)
                 Toast.makeText(this, getString(R.string.storage_empty), Toast.LENGTH_SHORT).show()
             }
         }
@@ -176,6 +180,7 @@ class GameActivity : AppCompatActivity() {
         s.tick(now)
         val r = s.collectActive(now, golden = true)
         if (r.amount > 0) {
+            Sound.sfx(this, R.raw.sfx_mega)
             b.gameView.spawnGolden("+" + Format.short(r.amount))
             if (r.crit) b.gameView.spawnCrit(getString(R.string.crit_pop))
             b.btnCollect.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)

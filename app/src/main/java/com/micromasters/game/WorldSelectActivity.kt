@@ -46,6 +46,7 @@ class WorldSelectActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Sound.resumeMusic(this)
         refresh()
         if (!dailyChecked) {
             dailyChecked = true
@@ -58,6 +59,7 @@ class WorldSelectActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        Sound.pauseMusic()
         NumAnim.cancelAll()
     }
 
@@ -211,10 +213,12 @@ class WorldSelectActivity : AppCompatActivity() {
                 item.worldAction.setTextColor(0xFF3A2400.toInt())
                 val unlock = View.OnClickListener {
                     if (s.unlockWorld(def.id)) {
+                        Sound.sfx(this, R.raw.sfx_unlock)
                         Game.save(this)
                         Toast.makeText(this, getString(def.nameRes) + " feloldva! 🎉", Toast.LENGTH_SHORT).show()
                         refresh()
                     } else {
+                        Sound.sfx(this, R.raw.sfx_error)
                         Toast.makeText(this, getString(R.string.not_enough_gems), Toast.LENGTH_SHORT).show()
                     }
                 }

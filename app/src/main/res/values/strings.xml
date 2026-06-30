@@ -99,6 +99,7 @@
     <string name="get">Kérem</string>
 
     <!-- Common -->
+    <string name="sound_toggle">🔊 Hang (zene + effektek)</string>
     <string name="close">Bezár</string>
     <string name="reset">Mentés törlése</string>
     <string name="reset_confirm">Biztosan törlöd a mentést?</string>

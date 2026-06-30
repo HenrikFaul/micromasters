@@ -185,10 +185,10 @@ object Dialogs {
                         r.upBtn.setOnClickListener {
                             val got = s.buyUnit(i, qtyFor(s.maxAffordableUnit(ws, i)))
                             if (got > 0) {
-                                it.pop(); onChange()
+                                it.pop(); Sound.sfx(act, R.raw.sfx_hire); onChange()
                                 if (got > 1) Toast.makeText(act, act.getString(R.string.bought_fmt, got), Toast.LENGTH_SHORT).show()
                                 rebuild()
-                            } else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
+                            } else { Sound.sfx(act, R.raw.sfx_error); Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show() }
                         }
                         v.upgradeList.addView(r.root)
                     }
@@ -217,10 +217,10 @@ object Dialogs {
                         r.upBtn.setOnClickListener {
                             val got = s.buyBuilding(i, qtyFor(s.maxAffordableBuilding(ws, i)))
                             if (got > 0) {
-                                it.pop(); onChange()
+                                it.pop(); Sound.sfx(act, R.raw.sfx_upgrade); onChange()
                                 if (got > 1) Toast.makeText(act, act.getString(R.string.bought_fmt, got), Toast.LENGTH_SHORT).show()
                                 rebuild()
-                            } else Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show()
+                            } else { Sound.sfx(act, R.raw.sfx_error); Toast.makeText(act, R.string.not_enough, Toast.LENGTH_SHORT).show() }
                         }
                         v.upgradeList.addView(r.root)
                     }
@@ -304,6 +304,7 @@ object Dialogs {
         v.btnClaim.setOnClickListener { btn ->
             val r = s.claimDaily(System.currentTimeMillis())
             if (r != null) {
+                Sound.sfx(act, R.raw.sfx_reward)
                 Game.save(act)
                 onChange()
                 btn.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -424,6 +425,7 @@ object Dialogs {
                             val g = s.claimQuest(i)
                             if (g > 0) {
                                 it.pop()
+                                Sound.sfx(act, R.raw.sfx_reward)
                                 Game.save(act)
                                 onChange()
                                 Toast.makeText(act, "+$g 💎", Toast.LENGTH_SHORT).show()
@@ -611,7 +613,7 @@ object Dialogs {
                 setRow.upBtn.setTextColor(DARK_GOLD)
                 setRow.upBtn.setOnClickListener {
                     if (s.claimCollection()) {
-                        it.pop(); Game.save(act); onChange()
+                        it.pop(); Sound.sfx(act, R.raw.sfx_mega); Game.save(act); onChange()
                         Toast.makeText(act, act.getString(R.string.collection_claimed), Toast.LENGTH_SHORT).show()
                         render()
                     }
@@ -780,6 +782,7 @@ object Dialogs {
             val res = s.conquer()
             if (res.ok) {
                 it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                Sound.sfx(act, if (res.clearedWorld) R.raw.sfx_mega else R.raw.sfx_conquer)
                 Game.save(act)
                 onChange()
                 if (res.clearedWorld) {
@@ -798,6 +801,7 @@ object Dialogs {
         v.btnRefine.setOnClickListener {
             if (s.refine()) {
                 it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                Sound.sfx(act, R.raw.sfx_upgrade)
                 Game.save(act)
                 onChange()
                 refresh()
@@ -823,6 +827,7 @@ object Dialogs {
                     val got = s.prestige(System.currentTimeMillis())
                     if (got > 0) {
                         it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        Sound.sfx(act, R.raw.sfx_mega)
                         Game.save(act)
                         onChange()
                         Toast.makeText(act, "+$got ⭐", Toast.LENGTH_LONG).show()
@@ -907,9 +912,12 @@ object Dialogs {
     // ---------------------------------------------------------------- settings
 
     fun showSettings(act: Activity, onChange: () -> Unit) {
+        val soundState = booleanArrayOf(Sound.enabled)
         AlertDialog.Builder(act)
             .setTitle(R.string.settings)
-            .setMessage("MicroMasters v1.0\nHyper-casual · Idle · Strategy\n\nÉpítsd, fejleszd és irányítsd apró egységeidet mikroszkopikus világokban!")
+            .setMultiChoiceItems(arrayOf(act.getString(R.string.sound_toggle)), soundState) { _, _, checked ->
+                Sound.setEnabled(act, checked)
+            }
             .setPositiveButton(R.string.close, null)
             .setNeutralButton(R.string.share) { _, _ ->
                 val s = Game.get(act)

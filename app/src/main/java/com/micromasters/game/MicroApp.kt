@@ -13,6 +13,7 @@ import java.io.StringWriter
 class MicroApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        Sound.init(this)
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             try {

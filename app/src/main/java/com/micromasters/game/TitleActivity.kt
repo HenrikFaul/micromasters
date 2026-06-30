@@ -25,6 +25,7 @@ class TitleActivity : AppCompatActivity() {
             Game.get(this)
 
             b.btnPlay.setOnClickListener {
+                Sound.sfx(this, R.raw.sfx_tap)
                 startActivity(Intent(this, WorldSelectActivity::class.java))
             }
             b.btnLogin.setOnClickListener {
@@ -40,6 +41,7 @@ class TitleActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Sound.resumeMusic(this)
         if (!::b.isInitialized) return
         bobbing = true
         bobPlanet(true)
@@ -47,6 +49,7 @@ class TitleActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        Sound.pauseMusic()
         bobbing = false
         if (::b.isInitialized) b.planet.animate().cancel()
     }
