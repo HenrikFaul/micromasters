@@ -38,7 +38,11 @@ android {
             // A real, non-debuggable, signed release build. Fixes the audit's only High
             // finding ("Application is debuggable"). Signing is only wired up when CI
             // provides a keystore, so local `assembleDebug` keeps working unchanged.
-            isMinifyEnabled = false
+            // R8 minify: real code obfuscation + dead-code removal (resolves the
+            // "DEX obfuscated" conflict). Resource shrinking is left off deliberately —
+            // it can strip dynamically-referenced resources and isn't device-verifiable here.
+            // Keep rules (JS bridge, custom Views, workers, enums) live in proguard-rules.pro.
+            isMinifyEnabled = true
             if (System.getenv("KEYSTORE_FILE") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
