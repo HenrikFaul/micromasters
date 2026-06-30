@@ -101,6 +101,11 @@
     <!-- Common -->
     <string name="sound_toggle">🔊 Hang (zene + effektek)</string>
     <string name="close">Bezár</string>
+
+    <!-- First-run onboarding -->
+    <string name="welcome_title">Üdvözlünk a MicroMastersben! 🌍</string>
+    <string name="welcome_body">• Koppints a GYŰJTÉS gombra (vagy a világra) az érmékért.\n• Vegyél fel Egységeket és építs Épületeket a termeléshez.\n• A Térképen hódíts területeket, és teljesítsd a világot.\n• Oldj fel új világokat, kutass és újraminiatürizálj a végtelen fejlődésért!\n\nA „Mit tegyek most?” kártya mindig mutatja a következő lépést. Jó játékot!</string>
+    <string name="welcome_ok">KEZDJÜK!</string>
     <string name="reset">Mentés törlése</string>
     <string name="reset_confirm">Biztosan törlöd a mentést?</string>
 

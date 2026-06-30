@@ -96,6 +96,12 @@ class GameActivity : AppCompatActivity() {
             intent.removeExtra("openUpgradeSeg")
             b.gameView.post { Dialogs.showUpgrades(this, seg) { onStateChanged() } }
         }
+
+        // First-ever entry: a one-time welcome explaining the loop.
+        if (s.markMilestone(GameState.M_ONBOARDED)) {
+            Game.save(this)
+            Dialogs.showWelcome(this)
+        }
     }
 
     override fun onPause() {

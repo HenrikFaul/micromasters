@@ -753,6 +753,7 @@ class GameState {
         const val M_FIRST_PRESTIGE = 1L shl 1
         const val M_COINS_1M = 1L shl 2
         const val M_COINS_1B = 1L shl 3
+        const val M_ONBOARDED = 1L shl 4   // first-run welcome shown
 
         fun newGame(now: Long): GameState {
             val s = GameState()

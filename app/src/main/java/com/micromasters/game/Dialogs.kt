@@ -919,6 +919,16 @@ object Dialogs {
 
     // ---------------------------------------------------------------- settings
 
+    /** One-time first-run welcome explaining the core loop. */
+    fun showWelcome(act: Activity) {
+        AlertDialog.Builder(act)
+            .setTitle(R.string.welcome_title)
+            .setMessage(R.string.welcome_body)
+            .setCancelable(true)
+            .setPositiveButton(R.string.welcome_ok, null)
+            .show()
+    }
+
     fun showSettings(act: Activity, onChange: () -> Unit) {
         val soundState = booleanArrayOf(Sound.enabled)
         AlertDialog.Builder(act)
