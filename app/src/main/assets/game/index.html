@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>MicroMasters 3D</title>
+<style>
+  :root { --sky1:#7fb4ff; --sky2:#bfe0ff; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a1330;
+    font-family:-apple-system,Roboto,"Segoe UI",sans-serif; color:#fff; touch-action:none; }
+  #sky { position:fixed; inset:0; background:linear-gradient(180deg,var(--sky1),var(--sky2)); transition:background .6s; }
+  #c { position:fixed; inset:0; display:block; }
+  .hud { position:fixed; left:0; right:0; pointer-events:none; z-index:10; }
+  #top { top:0; padding:10px 12px; display:flex; gap:8px; align-items:center; }
+  .pill { background:rgba(8,16,36,.62); border:1px solid rgba(255,255,255,.14); border-radius:22px;
+    padding:7px 13px; font-weight:800; font-size:15px; display:flex; align-items:center; gap:6px;
+    backdrop-filter:blur(6px); }
+  #spacer { flex:1; }
+  #back { pointer-events:auto; }
+  #goal { top:58px; text-align:center; font-weight:800; font-size:14px; text-shadow:0 2px 6px rgba(0,0,0,.5); }
+  #bottom { bottom:0; padding:14px 12px calc(14px + env(safe-area-inset-bottom)); display:flex; gap:10px; }
+  .btn { pointer-events:auto; flex:1; background:#43c463; color:#08240f; border:none; border-radius:18px;
+    padding:15px 8px; font-weight:900; font-size:15px; box-shadow:0 6px 0 rgba(0,0,0,.18); }
+  .btn:active { transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.18); }
+  .btn.gold { background:#f2a33c; color:#3a2400; }
+  .btn.blue { background:#3aa0ff; color:#04203f; }
+  .btn:disabled { filter:grayscale(.6) brightness(.8); }
+  #banner { position:fixed; inset:0; display:none; z-index:30; align-items:center; justify-content:center;
+    flex-direction:column; gap:14px; background:rgba(6,12,28,.72); backdrop-filter:blur(4px); }
+  #banner h1 { font-size:30px; text-shadow:0 3px 10px rgba(0,0,0,.6); }
+  #boot { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:40;
+    background:#0a1330; font-weight:800; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+  <div id="sky"></div>
+  <canvas id="c"></canvas>
+
+  <div class="hud" id="top">
+    <button class="pill" id="back">◀</button>
+    <div class="pill">🪵 <span id="res">0</span></div>
+    <div class="pill">👷 <span id="pop">0</span></div>
+    <div class="pill">🐛 <span id="pests">0</span></div>
+    <div id="spacer"></div>
+    <div class="pill" id="world">Konyha</div>
+  </div>
+
+  <div class="hud" id="goal">Gyűjts nyersanyagot, építs egységeket, és tisztítsd ki a kártevőket!</div>
+
+  <div class="hud" id="bottom">
+    <button class="btn" id="hire">👷 Munkás<br><small id="hireCost">15</small></button>
+    <button class="btn blue" id="tower">🗼 Védőtorony<br><small id="towerCost">40</small></button>
+    <button class="btn gold" id="rally">⚔️ Roham</button>
+  </div>
+
+  <div id="banner"><h1 id="bannerTxt"></h1><button class="btn gold" id="bannerBtn" style="max-width:240px">TOVÁBB</button></div>
+  <div id="boot">3D világ betöltése…</div>
+
+  <script src="three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

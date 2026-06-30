@@ -142,13 +142,13 @@ class WorldSelectActivity : AppCompatActivity() {
     private fun enterWorld(s: GameState, id: String) {
         s.activeWorld = id
         Game.save(this)
-        startActivity(Intent(this, GameActivity::class.java))
+        startActivity(Intent(this, Game3DActivity::class.java).putExtra("world", id))
     }
 
-    /** Open the active world, then auto-pop the upgrades sheet at [seg] on the game screen. */
+    /** Open the world's 3D base. */
     private fun enterWorldThenUpgrade(s: GameState, seg: Int) {
         Game.save(this)
-        startActivity(Intent(this, GameActivity::class.java).putExtra("openUpgradeSeg", seg))
+        startActivity(Intent(this, Game3DActivity::class.java).putExtra("world", s.activeWorld))
     }
 
     private fun buildWorldList(s: GameState) {
@@ -175,7 +175,7 @@ class WorldSelectActivity : AppCompatActivity() {
                 val enter = View.OnClickListener {
                     s.activeWorld = def.id
                     Game.save(this)
-                    startActivity(Intent(this, GameActivity::class.java))
+                    startActivity(Intent(this, Game3DActivity::class.java).putExtra("world", def.id))
                 }
                 item.worldAction.setOnClickListener(enter)
                 item.worldCard.setOnClickListener(enter)

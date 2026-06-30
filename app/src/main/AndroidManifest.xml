@@ -36,6 +36,13 @@
             android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden|uiMode|fontScale|density|locale|layoutDirection" />
 
         <activity
+            android:name=".Game3DActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:hardwareAccelerated="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden|uiMode|fontScale|density|locale|layoutDirection" />
+
+        <activity
             android:name=".CrashActivity"
             android:exported="false"
             android:process=":crash"
