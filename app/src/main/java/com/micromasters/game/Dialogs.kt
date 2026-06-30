@@ -689,43 +689,84 @@ object Dialogs {
             root.addView(r.root)
         }
 
+        fun section(title: String) {
+            root.addView(TextView(act).apply {
+                text = title
+                setTextColor(csl(act, R.color.gold))
+                textSize = 13f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setPadding(0, dp(act, 16), 0, dp(act, 2))
+            })
+        }
+
+        // ---- limited one-time offer (only until claimed) ----
+        if (!s.starterClaimed) {
+            section(act.getString(R.string.shop_section_offers))
+            addRow("🎒", act.getString(R.string.shop_starter), act.getString(R.string.shop_starter_desc),
+                act.getString(R.string.get), true) {
+                if (s.claimStarter(System.currentTimeMillis())) {
+                    Sound.sfx(act, R.raw.sfx_mega); Game.save(act)
+                    Toast.makeText(act, act.getString(R.string.shop_starter) + " ✓", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        // ---- rewarded ads (opt-in, value exchange — the only ad model) ----
+        section(act.getString(R.string.shop_section_gems))
         addRow("🎬", act.getString(R.string.shop_free_coins), "+5 perc termelés", act.getString(R.string.watch), false) {
             val grant = max(50L, floor(s.baseProdPerSec(s.activeWorld) * 300.0).toLong())
             s.coins += grant
-            Game.save(act)
+            Sound.sfx(act, R.raw.sfx_reward); Game.save(act)
             Toast.makeText(act, "+" + Format.short(grant) + " 💰", Toast.LENGTH_SHORT).show()
         }
+        addRow("🎬", act.getString(R.string.shop_free_gems), act.getString(R.string.shop_free_gems_desc),
+            act.getString(R.string.watch), false) {
+            s.addGems(15)
+            Sound.sfx(act, R.raw.sfx_reward); Game.save(act)
+            Toast.makeText(act, "+15 💎", Toast.LENGTH_SHORT).show()
+        }
+
+        // ---- gem packs (consumable IAP ladder) ----
         addRow("💎", act.getString(R.string.shop_gems_small), "+25 💎", act.getString(R.string.get), true) {
-            s.gems += 25
-            Game.save(act)
+            s.addGems(25); Sound.sfx(act, R.raw.sfx_reward); Game.save(act)
             Toast.makeText(act, "+25 💎", Toast.LENGTH_SHORT).show()
         }
         addRow("🎁", act.getString(R.string.shop_gems_big), "+120 💎", act.getString(R.string.get), true) {
-            s.gems += 120
-            Game.save(act)
+            s.addGems(120); Sound.sfx(act, R.raw.sfx_reward); Game.save(act)
             Toast.makeText(act, "+120 💎", Toast.LENGTH_SHORT).show()
         }
-        addRow("🎖️", act.getString(R.string.shop_battlepass), act.getString(R.string.shop_battlepass_desc), act.getString(R.string.get), true) {
-            s.gems += 50
-            Game.save(act)
-            Toast.makeText(act, act.getString(R.string.shop_battlepass) + " ✓", Toast.LENGTH_SHORT).show()
+        addRow("💰", act.getString(R.string.shop_gems_mega), "+400 💎", act.getString(R.string.get), true) {
+            s.addGems(400); Sound.sfx(act, R.raw.sfx_reward); Game.save(act)
+            Toast.makeText(act, "+400 💎", Toast.LENGTH_SHORT).show()
         }
-        addRow("👑", act.getString(R.string.shop_vip), act.getString(R.string.shop_vip_desc), act.getString(R.string.get), true) {
-            s.boostMult = 2.0
-            s.boostExpiry = System.currentTimeMillis() + 24L * 3600_000L
-            Game.save(act)
-            Toast.makeText(act, act.getString(R.string.shop_vip) + " ✓", Toast.LENGTH_SHORT).show()
+
+        // ---- premium (subscription + season pass + cosmetic) ----
+        section(act.getString(R.string.shop_section_premium))
+        addRow("👑", act.getString(R.string.shop_vip), act.getString(R.string.shop_vip_desc),
+            if (s.vip) act.getString(R.string.shop_active) else act.getString(R.string.get), true) {
+            if (s.buyVip()) {
+                Sound.sfx(act, R.raw.sfx_mega); Game.save(act)
+                Toast.makeText(act, act.getString(R.string.shop_vip) + " ✓", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(act, act.getString(R.string.shop_active), Toast.LENGTH_SHORT).show()
+        }
+        addRow("🎖️", act.getString(R.string.shop_battlepass), act.getString(R.string.shop_battlepass_desc),
+            if (s.seasonPass) act.getString(R.string.shop_active) else act.getString(R.string.get), true) {
+            if (s.buySeasonPass()) {
+                Sound.sfx(act, R.raw.sfx_mega); Game.save(act)
+                Toast.makeText(act, act.getString(R.string.shop_battlepass) + " ✓", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(act, act.getString(R.string.shop_active), Toast.LENGTH_SHORT).show()
         }
         addRow("✨", act.getString(R.string.shop_skin), act.getString(R.string.shop_skin_desc),
-            if (s.skinGold) act.getString(R.string.daily_done) else "40", true) {
+            if (s.skinGold) act.getString(R.string.shop_active) else "40", true) {
             if (!s.skinGold && s.gems >= 40) {
                 s.gems -= 40
                 s.skinGold = true
-                Game.save(act)
+                Sound.sfx(act, R.raw.sfx_reward); Game.save(act)
                 Toast.makeText(act, act.getString(R.string.shop_skin) + " ✓", Toast.LENGTH_SHORT).show()
             } else if (s.skinGold) {
-                Toast.makeText(act, act.getString(R.string.daily_done), Toast.LENGTH_SHORT).show()
+                Toast.makeText(act, act.getString(R.string.shop_active), Toast.LENGTH_SHORT).show()
             } else {
+                Sound.sfx(act, R.raw.sfx_error)
                 Toast.makeText(act, act.getString(R.string.not_enough_gems), Toast.LENGTH_SHORT).show()
             }
         }

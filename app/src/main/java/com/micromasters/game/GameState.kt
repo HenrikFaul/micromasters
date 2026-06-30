@@ -53,6 +53,11 @@ class GameState {
     var milestonesShown: Long = 0L   // bitmask of one-shot milestone toasts already shown
     private val COLLECTION_BONUS = 0.05
 
+    // Monetization (simulated IAP/subscription; persisted, economy-neutral while false).
+    var vip: Boolean = false          // VIP Club: permanent production bonus + perks
+    var seasonPass: Boolean = false   // Season Pass: doubled daily/quest rewards
+    var starterClaimed: Boolean = false
+
     // Active-play: tap-combo + crit. TRANSIENT — never serialized, so saves stay byte-identical.
     var comboHits: Int = 0
     var comboExpiry: Long = 0L
@@ -108,7 +113,10 @@ class GameState {
     }
 
     fun offlineEff(): Double = (0.5 + 0.02 * research[ResearchBranch.LOGISTICS.ordinal]).coerceAtMost(1.0)
-    fun offlineCapHours(): Double = (8.0 + research[ResearchBranch.LOGISTICS.ordinal]).coerceAtMost(24.0)
+    fun offlineCapHours(): Double {
+        val vipHours = if (vip) VIP_OFFLINE_HOURS else 0.0
+        return (8.0 + research[ResearchBranch.LOGISTICS.ordinal] + vipHours).coerceAtMost(if (vip) 28.0 else 24.0)
+    }
     fun labGemBonus(): Double = 1.0 + 0.05 * research[ResearchBranch.SCIENCE.ordinal]
     fun expansionDiscount(): Double = (1.0 - 0.03 * research[ResearchBranch.EXPANSION.ordinal]).coerceAtLeast(0.4)
 
@@ -163,11 +171,37 @@ class GameState {
     fun collectionComplete(): Boolean = skinGold && masteredCount() >= Defs.WORLDS.size
     fun collectionClaimable(): Boolean = collectionComplete() && !collectionBonus
     fun collectionMult(): Double = if (collectionBonus) 1.0 + COLLECTION_BONUS else 1.0
+
+    /** VIP Club production bonus (a permanent multiplier; 1.0 for non-VIP). */
+    fun vipMult(): Double = if (vip) VIP_PROD_BONUS else 1.0
     fun claimCollection(): Boolean {
         if (!collectionClaimable()) return false
         collectionBonus = true
         return true
     }
+
+    // ---- monetization (simulated; a real build wires these to Play Billing / an ad SDK) ----
+
+    /** Grant premium currency (gem pack purchase / rewarded ad). */
+    fun addGems(n: Long) { if (n > 0) gems = (gems + n).coerceAtLeast(0L) }
+
+    /** One-time Starter Pack: a high-value new-player bundle. Returns false if already claimed. */
+    fun claimStarter(now: Long): Boolean {
+        if (starterClaimed) return false
+        starterClaimed = true
+        gems += STARTER_GEMS
+        val ws = active()
+        ws.pending = min(capacity(activeWorld), ws.pending + baseProdRaw(activeWorld) * 1800.0 + 1.0)
+        boostMult = 2.0
+        boostExpiry = max(boostExpiry, now) + 15L * 60_000L
+        return true
+    }
+
+    /** Activate VIP Club (simulated subscription). */
+    fun buyVip(): Boolean { if (vip) return false; vip = true; return true }
+
+    /** Activate the Season Pass (simulated). */
+    fun buySeasonPass(): Boolean { if (seasonPass) return false; seasonPass = true; return true }
 
     // ---- one-shot milestones --------------------------------------------
     fun milestoneSeen(bit: Long): Boolean = (milestonesShown and bit) != 0L
@@ -259,7 +293,7 @@ class GameState {
         val ws = world(id)
         return unitsBaseProd(ws) * def.prodMult * workshopMult(ws) * territoryBonus(ws) *
             (1.0 + 0.02 * ws.essenceRefines) * researchProdMult() * prestigeMult(ws) *
-            collectionMult() * worldTwistMult(ws, def)
+            collectionMult() * worldTwistMult(ws, def) * vipMult()
     }
 
     /** Production per second, ignoring boost and live combo (legacy callers stay combo-neutral). */
@@ -649,11 +683,14 @@ class GameState {
         val continues = lastClaimDay >= today - 2L && lastClaimDay != -1L
         if (!continues) dailyStreak = 0
         val idx = dailyStreak.mod(Defs.DAILY.size)
-        val reward = Defs.DAILY[idx]
-        if (reward.isGems) gems += reward.amount else coins += reward.amount
+        val base = Defs.DAILY[idx]
+        val mult = if (seasonPass) 2L else 1L          // Season Pass doubles the daily reward
+        val amount = base.amount * mult
+        if (base.isGems) gems += amount else coins += amount
+        if (vip) gems += VIP_DAILY_GEMS                // VIP daily gem bonus
         dailyStreak += 1
         lastClaimDay = today
-        return reward
+        return if (mult == 1L) base else Defs.DailyReward(amount, base.isGems)
     }
 
     // ---- daily quests ---------------------------------------------------
@@ -712,6 +749,9 @@ class GameState {
         o.put("research", JSONArray(research.toList()))
         o.put("collectionBonus", collectionBonus)
         o.put("milestonesShown", milestonesShown)
+        o.put("vip", vip)
+        o.put("seasonPass", seasonPass)
+        o.put("starterClaimed", starterClaimed)
         val ws = JSONObject()
         for ((id, w) in worlds) {
             val wo = JSONObject()
@@ -755,6 +795,12 @@ class GameState {
         const val M_COINS_1B = 1L shl 3
         const val M_ONBOARDED = 1L shl 4   // first-run welcome shown
 
+        // Monetization tuning.
+        const val VIP_PROD_BONUS = 1.25    // +25% global production for VIP
+        const val VIP_OFFLINE_HOURS = 4.0  // extra offline accrual cap for VIP
+        const val VIP_DAILY_GEMS = 15L     // bonus gems each daily claim for VIP
+        const val STARTER_GEMS = 100L      // Starter Pack premium-currency grant
+
         fun newGame(now: Long): GameState {
             val s = GameState()
             s.created = now
@@ -797,6 +843,9 @@ class GameState {
             readInts(o.optJSONArray("research"), s.research)
             s.collectionBonus = o.optBoolean("collectionBonus", false)
             s.milestonesShown = o.optLong("milestonesShown", 0L).coerceAtLeast(0L)
+            s.vip = o.optBoolean("vip", false)
+            s.seasonPass = o.optBoolean("seasonPass", false)
+            s.starterClaimed = o.optBoolean("starterClaimed", false)
             val ws = o.optJSONObject("worlds")
             for (def in Defs.WORLDS) {
                 val w = WorldState(unlocked = def.unlockedByDefault)

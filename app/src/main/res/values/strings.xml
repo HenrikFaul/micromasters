@@ -118,12 +118,22 @@
     <string name="event_fmt">Hétvégi 2× esemény — még %1$s!</string>
     <string name="share">Megosztás</string>
     <string name="share_text">🐜 %1$s érmét gyűjtöttem a MicroMastersben! Játssz velem!</string>
-    <string name="shop_battlepass">Harci Útvonal</string>
-    <string name="shop_battlepass_desc">Szezonális jutalmak 30 napon át</string>
+    <string name="shop_battlepass">Szezonbérlet</string>
+    <string name="shop_battlepass_desc">Dupla napi jutalom a szezonban</string>
     <string name="shop_vip">VIP Klub</string>
-    <string name="shop_vip_desc">Dupla termelés és napi bónusz</string>
+    <string name="shop_vip_desc">Termelés ×1.25 · +4 óra offline · napi 15 💎</string>
     <string name="shop_skin">Arany egységek</string>
     <string name="shop_skin_desc">Csillogó arany kinézet az egységeknek</string>
+    <!-- Monetization additions -->
+    <string name="shop_starter">Kezdő csomag</string>
+    <string name="shop_starter_desc">100 💎 + nagy érme-bónusz + 2× boost — egyszeri</string>
+    <string name="shop_free_gems">Ingyen gyémánt (reklám)</string>
+    <string name="shop_free_gems_desc">Nézz meg egy reklámot 15 💎-ért</string>
+    <string name="shop_gems_mega">Halom gyémánt</string>
+    <string name="shop_active">AKTÍV</string>
+    <string name="shop_section_offers">Ajánlatok</string>
+    <string name="shop_section_gems">Gyémántok</string>
+    <string name="shop_section_premium">Prémium</string>
 
     <!-- Daily quests -->
     <string name="quests_title">Napi feladatok</string>
