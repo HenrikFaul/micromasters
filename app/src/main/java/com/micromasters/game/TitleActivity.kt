@@ -1,10 +1,14 @@
 package com.micromasters.game
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.micromasters.game.databinding.ActivityTitleBinding
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -23,6 +27,11 @@ class TitleActivity : AppCompatActivity() {
 
             // Warm up / migrate the save so the first gameplay frame is instant.
             Game.get(this)
+
+            // Local, on-device daily reminder (no network). Idempotent on every launch.
+            Notifications.ensureChannel(this)
+            Notifications.scheduleDailyReminder(this)
+            maybeAskNotifPermission()
 
             b.btnPlay.setOnClickListener {
                 Sound.sfx(this, R.raw.sfx_tap)
@@ -70,6 +79,16 @@ class TitleActivity : AppCompatActivity() {
             .setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction { bobPlanet(!up) }
             .start()
+    }
+
+    /** Ask once for notification permission on Android 13+ (declined gracefully = no reminders). */
+    private fun maybeAskNotifPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            try { requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001) } catch (e: Throwable) { /* user can grant later in settings */ }
+        }
     }
 
     /** If a crash was recorded, show it instead of risking another crash loop. */

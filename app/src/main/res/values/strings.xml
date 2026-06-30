@@ -5,7 +5,14 @@
     <!-- Title screen -->
     <string name="title_play">JÁTSSZ</string>
     <string name="title_login">Bejelentkezés</string>
-    <string name="title_tagline">Építsd fel a mikrovilágod!</string>
+    <string name="title_tagline">Egyesíts. Fedezz fel. Építsd újra a civilizációt.</string>
+    <string name="title_footer">OFFLINE · REKLÁMMENTES</string>
+
+    <!-- Notifications (local, on-device daily reminder) -->
+    <string name="notif_channel_name">Emlékeztetők</string>
+    <string name="notif_channel_desc">Napi széria-emlékeztető a felfedezés folytatásához.</string>
+    <string name="notif_streak_title">A felfedezés folytatódik 🔥</string>
+    <string name="notif_streak_text">Ne szakítsd meg a szériádat — ma is vár egy új találmány!</string>
 
     <!-- World select -->
     <string name="worlds">Világok</string>
