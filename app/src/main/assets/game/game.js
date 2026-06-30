@@ -87,9 +87,13 @@
 
   // ---------- meta: daily streak, intro-seen, lifetime best (retention) ----------
   const MKEY = 'mm_meta_v1';
-  let meta = { introSeen: false, streak: 0, bestStreak: 0, lastDayN: -1, foundToday: 0, defeated: [], wins: 0 };
+  let meta = { introSeen: false, streak: 0, bestStreak: 0, lastDayN: -1, foundToday: 0, defeated: [], wins: 0,
+    fragments: 0, expeds: {}, heroSeen: [], equipHero: null };
   try { const m = JSON.parse(localStorage.getItem(MKEY) || 'null'); if (m && typeof m === 'object') meta = Object.assign(meta, m); } catch (e) {}
   if (!Array.isArray(meta.defeated)) meta.defeated = [];
+  if (!meta.expeds || typeof meta.expeds !== 'object') meta.expeds = {};
+  if (typeof meta.fragments !== 'number') meta.fragments = 0;
+  if (!Array.isArray(meta.heroSeen)) meta.heroSeen = [];
   const isDefeated = (id) => meta.defeated.indexOf(id) >= 0;
   const saveMeta = () => { try { localStorage.setItem(MKEY, JSON.stringify(meta)); } catch (e) {} };
   // local-day index (offset so the day rolls over at the player's local midnight)
@@ -257,6 +261,8 @@
     el('cx').textContent = disc.size + '/' + TOTAL;
     el('core').textContent = Math.round(disc.size / TOTAL * 100) + '%';
     el('streak').textContent = meta.streak || 0;
+    const fr = el('frag'); if (fr) fr.textContent = meta.fragments || 0;
+    if (typeof checkNewHeroes === 'function') checkNewHeroes();
   }
 
   function pick(id) {
@@ -360,6 +366,13 @@
   const bEl = (id) => document.getElementById(id);
   let battle = null;
   let shake = 0, bossHit = 0, bossMode = false, bossExplode = 0;
+  // each Master fights differently (kept mild so duels stay winnable when prepared)
+  const MMECH = {
+    master_stone: 'armor', master_knowledge: 'regen', master_industrial: 'enrage2',
+    master_information: 'drain', master_modern: 'regen', master_space: 'armor',
+    master_interstellar: 'regen', master_galactic: 'enrage2', master_type3: 'regen',
+  };
+  const MECHLABEL = { armor: '🛡️ Páncél (–2 a nem-kritikus sebzésből)', regen: '♻️ Regeneráció (+2 ÉP/kör)', enrage2: '⚡ Gyakori düh (minden 2. kör)', drain: '🌀 Sebzéscsökkentés', none: '' };
 
   function masterTier(m) { const i = MASTERS.indexOf(m); return i < 0 ? 0 : i; }
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
@@ -368,20 +381,31 @@
     if (!bossReady(m)) { toast('Előbb fedezd fel a Master technológiáit 🔒', 2800); return; }
     const tier = masterTier(m);
     const coreMax = 100 + 10 * (meta.wins || 0);
+    const mech = MMECH[m.id] || 'none';
+    const heroId = (meta.equipHero && heroOwned(meta.equipHero)) ? meta.equipHero : null;
     battle = {
       m: m, tier: tier, bossHP: 100, bossMax: 100, core: coreMax, coreMax: coreMax,
       turn: 0, lastWeak: null, over: false, hand: [],
       weakDmg: 10, normDmg: 4, counter: 4.5 + tier * 0.65,
+      mech: mech, hero: heroId, heroUsed: false, shield: false, crit2: false, freeHit: false, drainNext: false,
     };
     bEl('bEmoji').textContent = m.emoji;
     bEl('bName').textContent = m.name;
-    bEl('bEra').textContent = m.era;
-    bEl('bMech').textContent = '„' + (m.mechanic || '') + '”';
+    bEl('bEra').textContent = m.era + (MECHLABEL[mech] ? ' · ' + MECHLABEL[mech].split(' ')[0] + ' ' + MECHLABEL[mech].split(' ')[1] : '');
+    bEl('bMech').textContent = (MECHLABEL[mech] ? '【' + MECHLABEL[mech] + '】 ' : '') + '„' + (m.mechanic || '') + '”';
     bEl('bEnd').classList.remove('show');
+    // equipped-hero ability button
+    const hb = bEl('bHero');
+    if (heroId) {
+      const ab = HERO(heroId).battle || {};
+      hb.style.display = 'block'; hb.classList.remove('used'); hb.disabled = false;
+      hb.textContent = HERO(heroId).emoji + ' ' + (ab.name || 'Képesség') + ' — ' + (ab.desc || '');
+      hb.onclick = useHeroAbility;
+    } else { hb.style.display = 'none'; }
     el('masters').style.display = 'none';
     bEl('battle').classList.add('show');
     bossVisual(true);
-    bLog('A párbaj megkezdődött — vesd be a felfedezett technológiáidat! ⚔️');
+    bLog('A párbaj megkezdődött — vesd be a felfedezett technológiáidat! ⚔️' + (heroId ? '<br>🦸 ' + HERO(heroId).name.split(',')[0] + ' melletted harcol.' : ''));
     drawHand(); renderBattle();
   }
   function bLog(html) { const l = bEl('bLog'); if (l) l.innerHTML = html; }
@@ -420,20 +444,52 @@
 
   function playCard(id, weak) {
     const b = battle; if (!b || b.over) return;
-    const dmg = weak ? b.weakDmg : b.normDmg;
+    let dmg = weak ? b.weakDmg : b.normDmg;
+    if (b.mech === 'armor' && !weak) dmg = Math.max(1, dmg - 2);
+    let crit2 = false, drained = false;
+    if (b.crit2) { dmg *= 2; b.crit2 = false; crit2 = true; }
+    if (b.drainNext) { dmg = Math.max(1, Math.round(dmg * 0.5)); b.drainNext = false; drained = true; }
     b.bossHP -= dmg;
     if (weak) b.lastWeak = id;
     burst(core.position.clone(), weak ? 0xffd24d : 0x9fd0ff, weak ? 20 : 10);
     coreFlash = 1; shake = weak ? 0.5 : 0.3; bossHit = 1;
     if (b.bossHP <= 0) { renderBattle(); setTimeout(playerWin, 260); return; }
+    let regenTxt = '';
+    if (b.mech === 'regen' && b.bossHP < b.bossMax) { b.bossHP = Math.min(b.bossMax, b.bossHP + 2); regenTxt = ' ♻️ +2 a Masternek.'; }
     b.turn++;
-    const enrage = (b.turn % 3 === 0);
-    const cd = Math.round(b.counter * (0.85 + Math.random() * 0.3) * (enrage ? 1.5 : 1));
-    b.core -= cd;
-    bLog(E[id].e + ' ' + (weak ? '<b style="color:#ffd24d">KRITIKUS</b> ' : '') + '−' + dmg + ' a Masternek!<br>' +
-      (enrage ? '⚠️ <b style="color:#ff8a6b">Feltöltött csapás!</b> ' : 'A Master visszavág: ') + '−' + cd + ' a Magnak.');
+    let line = E[id].e + ' ' + (weak ? '<b style="color:#ffd24d">KRITIKUS</b> ' : '') + (crit2 ? '<b style="color:#9fe0ff">⚡2× </b>' : '') +
+      (drained ? '<span style="color:#c9a6ff">🌀 </span>' : '') + '−' + dmg + ' a Masternek!' + regenTxt + '<br>';
+    if (b.freeHit) {
+      b.freeHit = false;
+      line += '🔄 Ingyenes támadás — nincs ellentámadás.';
+    } else {
+      const enrage = b.mech === 'enrage2' ? (b.turn % 2 === 0) : (b.turn % 3 === 0);
+      let cd = Math.round(b.counter * (0.85 + Math.random() * 0.3) * (enrage ? 1.5 : 1));
+      if (b.shield) { b.shield = false; cd = 0; line += '🛡️ A pajzs elnyelte a csapást!'; }
+      else line += (enrage ? '⚠️ <b style="color:#ff8a6b">Feltöltött csapás!</b> ' : 'A Master visszavág: ') + '−' + cd + ' a Magnak.';
+      b.core -= cd;
+      if (b.mech === 'drain' && b.turn % 3 === 0) { b.drainNext = true; line += ' <span style="color:#c9a6ff">A következő lapod gyengül.</span>'; }
+    }
+    bLog(line);
     if (b.core <= 0) { renderBattle(); setTimeout(playerLose, 260); return; }
     drawHand(); renderBattle();
+  }
+
+  function useHeroAbility() {
+    const b = battle; if (!b || b.over || b.heroUsed || !b.hero) return;
+    const ab = HERO(b.hero).battle || {}; b.heroUsed = true;
+    const hb = bEl('bHero'); hb.classList.add('used'); hb.disabled = true; hb.textContent = '✓ ' + (ab.name || 'Képesség') + ' bevetve';
+    burst(core.position.clone(), 0xffd24d, 16); coreFlash = 1;
+    const who = HERO(b.hero).emoji + ' ' + (ab.name || '');
+    if (ab.type === 'heal') { b.core = Math.min(b.coreMax, b.core + ab.val); bLog(who + ': +' + ab.val + ' Mag-integritás 💚'); renderBattle(); }
+    else if (ab.type === 'shield') { b.shield = true; bLog(who + ': a következő Master-csapás elnyelve 🛡️'); }
+    else if (ab.type === 'crit') { b.crit2 = true; bLog(who + ': a következő lapod dupla sebzés ⚡'); }
+    else if (ab.type === 'draw') { b.freeHit = true; drawHand(); bLog(who + ': új kéz — a következő lap ingyenes 🔄'); renderBattle(); }
+    else if (ab.type === 'nuke') {
+      b.bossHP -= ab.val; shake = 0.6; bossHit = 1;
+      if (b.bossHP <= 0) { bLog(who + ': −' + ab.val + ' 💥'); renderBattle(); setTimeout(playerWin, 260); return; }
+      bLog(who + ': −' + ab.val + ' a Masternek 💥'); renderBattle();
+    }
   }
 
   function playerWin() {
@@ -468,6 +524,212 @@
   }
   bEl('bEndBtn').onclick = () => { closeBattle(); renderMasters(); el('masters').style.display = 'block'; };
   bEl('bClose').onclick = () => { closeBattle(); renderMasters(); el('masters').style.display = 'block'; };
+
+  // ---------- heroes · worlds · expeditions (meta layer) ----------
+  // Config layered onto the generated MM_DATA so balance lives in one place.
+  const HEROCFG = {
+    emberke:      { unlock: {},          spd: 0.95, frag: 1.0,  rare: 1.0, battle: { type: 'nuke',   val: 28, name: 'Szikracsapás', desc: 'Azonnal 28 sebzés a Masternek.' } },
+    oregkronikas: { unlock: { disc: 18 },spd: 1.0,  frag: 1.3,  rare: 1.0, battle: { type: 'heal',   val: 30, name: 'Kódex-emlék',  desc: '+30 Mag-integritás.' } },
+    vasanya:      { unlock: { disc: 35 },spd: 0.9,  frag: 1.25, rare: 1.0, battle: { type: 'shield', val: 1,  name: 'Vaspajzs',     desc: 'A következő Master-csapást elnyeli.' } },
+    aramvolgyi:   { unlock: { wins: 1 }, spd: 0.8,  frag: 1.0,  rare: 1.0, battle: { type: 'crit',   val: 2,  name: 'Túltöltés',    desc: 'A következő lapod dupla sebzést okoz.' } },
+    szellocsillag:{ unlock: { disc: 70 },spd: 0.6,  frag: 1.1,  rare: 2.0, battle: { type: 'draw',   val: 1,  name: 'Felderítés',   desc: 'Új kéz; a következő lap nem vált ki ellentámadást.' } },
+    adatlany:     { unlock: { wins: 2 }, spd: 0.85, frag: 1.1,  rare: 1.4, battle: { type: 'draw',   val: 1,  name: 'Hálózat',      desc: 'Új kéz; a következő lap nem vált ki ellentámadást.' } },
+    fenymag:      { unlock: { disc: 130 },spd:0.85, frag: 1.0,  rare: 1.3, battle: { type: 'heal',   val: 40, name: 'Gyógyítás',    desc: '+40 Mag-integritás.' } },
+    csillagkohacs:{ unlock: { wins: 5 }, spd: 0.9,  frag: 1.2,  rare: 1.5, battle: { type: 'nuke',   val: 34, name: 'Csillagtűz',   desc: 'Azonnal 34 sebzés a Masternek.' } },
+  };
+  const WORLDCFG = {
+    stone_world: { dur: 30,  frag: 5,  perk: 'plain',       unlock: {} },
+    ice_world:   { dur: 50,  frag: 7,  perk: 'safe',        unlock: { disc: 15 } },
+    jungle:      { dur: 60,  frag: 9,  perk: 'double_frag', unlock: { disc: 28 } },
+    ocean:       { dur: 75,  frag: 11, perk: 'plain',       unlock: { disc: 45 } },
+    volcano:     { dur: 70,  frag: 15, perk: 'risky',       unlock: { wins: 1 } },
+    sky_kingdom: { dur: 90,  frag: 13, perk: 'rare',        unlock: { disc: 75 } },
+    moon:        { dur: 45,  frag: 9,  perk: 'fast',        unlock: { wins: 2 } },
+    mars:        { dur: 110, frag: 17, perk: 'plain',       unlock: { disc: 105 } },
+    europa:      { dur: 130, frag: 22, perk: 'rare',        unlock: { wins: 3 } },
+    dyson_ring:  { dur: 100, frag: 26, perk: 'double_frag', unlock: { disc: 150 } },
+    black_hole:  { dur: 160, frag: 36, perk: 'jackpot',     unlock: { wins: 5 } },
+    multiverse:  { dur: 150, frag: 30, perk: 'double_elem', unlock: { wins: 7 } },
+  };
+  const PERKTAG = { plain: '', safe: 'GARANTÁLT LELET', double_frag: 'DUPLA 💠', risky: 'KOCKÁZATOS', rare: 'RITKA LELET', fast: 'GYORS', jackpot: 'JACKPOT 💠💠', double_elem: '2× LELET' };
+
+  const HD = (window.MM_DATA && MM_DATA.heroes) || [];
+  const WD = (window.MM_DATA && MM_DATA.worlds) || [];
+  const HEROES = {}; HD.forEach(h => { HEROES[h.id] = Object.assign({}, h, HEROCFG[h.id] || {}); });
+  const WORLDS = {}; WD.forEach(w => { WORLDS[w.id] = Object.assign({}, w, WORLDCFG[w.id] || {}); });
+  const HERO = (id) => HEROES[id];
+
+  function unlockMet(u) { u = u || {}; if (u.wins && (meta.wins || 0) < u.wins) return false; if (u.disc && disc.size < u.disc) return false; return true; }
+  function heroOwned(id) { return !!HEROES[id] && unlockMet(HEROES[id].unlock); }
+  function worldUnlocked(id) { return !!WORLDS[id] && unlockMet(WORLDS[id].unlock); }
+  function unlockText(u) { u = u || {}; if (u.wins) return 'Győzz le ' + u.wins + ' Mastert 🔒'; if (u.disc) return 'Fedezz fel ' + u.disc + ' elemet 🔒'; return ''; }
+  function heroBusy(id) { for (const w in meta.expeds) if (meta.expeds[w].hero === id) return w; return null; }
+  function idleHeroes() { return HD.map(h => h.id).filter(id => heroOwned(id) && !heroBusy(id)); }
+
+  function reachableUndiscovered() {
+    const out = [];
+    for (const r in RBYRES) { if (!disc.has(r) && E[r]) { const p = RBYRES[r]; if (disc.has(p[0]) && disc.has(p[1])) out.push(r); } }
+    return out;
+  }
+  function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); }
+
+  function startExpedition(wid, hid) {
+    const w = WORLDS[wid]; if (!w || meta.expeds[wid] || !heroOwned(hid) || heroBusy(hid)) return;
+    const dur = Math.round(w.dur * 1000 * (HERO(hid).spd || 1));
+    meta.expeds[wid] = { hero: hid, start: Date.now(), dur: dur, notified: false };
+    saveMeta(); updateMapBadge(); renderMap();
+  }
+  function claimExpedition(wid) {
+    const e = meta.expeds[wid]; if (!e) return;
+    if (Date.now() - e.start < e.dur) return;
+    const w = WORLDS[wid], h = HERO(e.hero) || {};
+    let fragMult = 1, pElem = 0.6, nElem = 1, rareDeep = false;
+    switch (w.perk) {
+      case 'safe': pElem = 1.0; break;
+      case 'double_frag': fragMult = 2; pElem = 0.5; break;
+      case 'risky': if (Math.random() < 0.25) { fragMult = 0.5; pElem = 0; } else { fragMult = 1.6; pElem = 0.7; } break;
+      case 'rare': pElem = 0.85; rareDeep = true; break;
+      case 'fast': fragMult = 0.9; pElem = 0.5; break;
+      case 'jackpot': fragMult = 3; pElem = 0.5; break;
+      case 'double_elem': fragMult = 1.2; pElem = 0.8; nElem = 2; break;
+    }
+    const frag = Math.max(1, Math.round(w.frag * (h.frag || 1) * fragMult));
+    meta.fragments = (meta.fragments || 0) + frag;
+    const chance = pElem * (h.rare || 1);
+    const pool = reachableUndiscovered();
+    const got = [];
+    for (let i = 0; i < nElem && pool.length; i++) {
+      if (Math.random() < chance || (w.perk === 'safe' && i === 0)) {
+        let idx = Math.floor(Math.random() * pool.length);
+        if (rareDeep) idx = pool.reduce((bi, id, ii) => eraOrder(id) > eraOrder(pool[bi]) ? ii : bi, 0);
+        const id = pool.splice(idx, 1)[0];
+        disc.add(id); got.push(id);
+      }
+    }
+    if (got.length) { save(); }
+    delete meta.expeds[wid]; saveMeta(); updateTop(); updateMapBadge();
+    toast('🗺️ Expedíció kész: +' + frag + ' 💠' + (got.length ? ' · új tudás: ' + got.map(id => E[id].e).join(' ') : ''), 3800);
+    renderMap();
+  }
+  function skipExpedition(wid) {
+    const e = meta.expeds[wid]; if (!e) return;
+    const rem = e.dur - (Date.now() - e.start);
+    if (rem <= 0) { claimExpedition(wid); return; }
+    const cost = Math.max(1, Math.ceil(rem / 1000 / 15));
+    if ((meta.fragments || 0) < cost) { toast('Nincs elég 💠 — ' + cost + ' kell a siettetéshez', 2800); return; }
+    meta.fragments -= cost; e.start = Date.now() - e.dur; saveMeta(); claimExpedition(wid);
+  }
+
+  function renderMap() {
+    const g = el('mapGrid'); if (!g) return; g.innerHTML = '';
+    const now = Date.now();
+    for (const w of WD) {
+      const wid = w.id, cfg = WORLDS[wid];
+      const e = meta.expeds[wid];
+      const card = document.createElement('div'); card.className = 'wcard';
+      const tag = PERKTAG[cfg.perk] || '';
+      let body = '<div class="whead"><span class="we">' + w.emoji + '</span><span class="wn">' + w.name +
+        '</span><span class="wtag">' + tag + '</span></div>';
+      if (!worldUnlocked(wid)) {
+        card.className += ' lock';
+        body += '<div class="wmech">' + w.mechanic + '</div><div class="wstatus">' + unlockText(cfg.unlock) + '</div>';
+      } else if (e) {
+        const rem = e.dur - (now - e.start), ready = rem <= 0, hero = HERO(e.hero);
+        card.className += ready ? ' ready' : ' run';
+        const pct = Math.min(100, (now - e.start) / e.dur * 100);
+        body += '<div class="wstatus">' + (hero ? hero.emoji + ' ' + hero.name.split(',')[0] : 'Hős') + ' · ' +
+          (ready ? '<b style="color:#7fe08a">visszatért ✅</b>' : 'úton…') + '</div>' +
+          '<div class="wprog"><div class="wfill" id="wp_' + wid + '" style="width:' + pct + '%"></div></div>' +
+          '<div class="wrow"><span class="wstatus" id="wc_' + wid + '">' + (ready ? 'Kész!' : fmtTime(rem)) + '</span></div>';
+        const row = document.createElement('div'); row.className = 'wrow'; row.style.marginTop = '8px';
+        const main = document.createElement('button'); main.className = 'wbtn';
+        main.textContent = ready ? '🎁 Begyűjt' : '⏩ Siettetés (💠' + Math.max(1, Math.ceil(rem / 1000 / 15)) + ')';
+        if (!ready) main.classList.add('skip');
+        main.onclick = ready ? () => claimExpedition(wid) : () => skipExpedition(wid);
+        card.innerHTML = body; row.appendChild(main); card.appendChild(row); g.appendChild(card); continue;
+      } else {
+        body += '<div class="wmech">' + w.mechanic + '</div>';
+        const idle = idleHeroes();
+        if (idle.length) {
+          body += '<div class="wstatus" style="margin-bottom:6px">Válassz hőst az expedícióhoz:</div>';
+          card.innerHTML = body;
+          const row = document.createElement('div'); row.className = 'wrow';
+          idle.forEach(hid => {
+            const h = HERO(hid);
+            const chip = document.createElement('button'); chip.className = 'hchip';
+            chip.innerHTML = '<span class="he">' + h.emoji + '</span>' + h.name.split(',')[0];
+            chip.onclick = () => startExpedition(wid, hid);
+            row.appendChild(chip);
+          });
+          card.appendChild(row); g.appendChild(card); continue;
+        } else {
+          body += '<div class="wstatus">Nincs szabad hős — old fel vagy hívj vissza egyet 🦸</div>';
+        }
+      }
+      card.innerHTML = body; g.appendChild(card);
+    }
+    let ownedH = idleHeroes().length, running = Object.keys(meta.expeds).length;
+    el('mapSub').innerHTML = '💠 ' + (meta.fragments || 0) + ' szilánk · ' + running + ' aktív expedíció · ' + ownedH + ' szabad hős';
+  }
+
+  function renderHeroes() {
+    const g = el('heroesGrid'); if (!g) return; g.innerHTML = '';
+    let owned = 0;
+    for (const h of HD) {
+      const have = heroOwned(h.id), busyAt = heroBusy(h.id), cfg = HEROES[h.id];
+      if (have) owned++;
+      const card = document.createElement('div'); card.className = 'hcard' + (have ? '' : ' lock') + (meta.equipHero === h.id ? ' equip' : '');
+      const ab = cfg.battle || {};
+      let state;
+      if (!have) state = '<div class="hbstate" style="color:#9fb0d8">' + unlockText(cfg.unlock) + '</div>';
+      else if (busyAt) state = '<div class="hbstate" style="color:#9fd0ff">Expedíción: ' + (WORLDS[busyAt] ? WORLDS[busyAt].emoji + ' ' + WORLDS[busyAt].name : busyAt) + '</div>';
+      else state = '<div class="hbstate" style="color:#7fe08a">Szabad ✅</div>';
+      card.innerHTML = '<div class="hbe">' + h.emoji + '</div><div class="hbb">' +
+        '<div class="hbn">' + h.name + '</div>' +
+        '<div class="hbrole">⚔️ ' + (ab.name || '—') + ' · 🗺️ ×' + (cfg.spd ? (1 / cfg.spd).toFixed(1) : '1') + ' tempó</div>' +
+        '<div class="hbab">' + (ab.desc || '') + '</div>' +
+        '<div class="hbab" style="color:#9fb0d8;margin-top:3px">' + h.ability + '</div>' + state + '</div>';
+      if (have) {
+        const eq = document.createElement('button'); eq.className = 'hbtn' + (meta.equipHero === h.id ? ' on' : '');
+        eq.textContent = meta.equipHero === h.id ? '✓ Csatába állítva' : '⚔️ Csatába';
+        eq.onclick = () => { meta.equipHero = (meta.equipHero === h.id ? null : h.id); saveMeta(); renderHeroes(); };
+        card.querySelector('.hbb').appendChild(eq);
+      }
+      g.appendChild(card);
+    }
+    el('heroesSub').innerHTML = '🦸 ' + owned + ' / ' + HD.length + ' hős feloldva · állíts egyet csatába a Master-párbajokhoz';
+  }
+
+  function updateMapBadge() {
+    const now = Date.now(); let ready = 0;
+    for (const w in meta.expeds) if (meta.expeds[w].dur - (now - meta.expeds[w].start) <= 0) ready++;
+    const b = el('mapBtn'); if (b) b.innerHTML = '🗺️' + (ready ? ' <b style="color:#7fe08a">' + ready + '</b>' : '');
+  }
+  function checkNewHeroes() {
+    const newly = [];
+    for (const id in HEROES) { if (heroOwned(id) && meta.heroSeen.indexOf(id) < 0) { meta.heroSeen.push(id); newly.push(id); } }
+    if (newly.length) { saveMeta(); setTimeout(() => toast('🦸 Új hős: ' + newly.map(id => HERO(id).emoji + ' ' + HERO(id).name.split(',')[0]).join(', '), 3600), 900); }
+  }
+  // expedition ticker: live countdowns + return notifications even with the map closed
+  setInterval(() => {
+    const now = Date.now(); let newReady = false;
+    for (const wid in meta.expeds) {
+      const e = meta.expeds[wid], rem = e.dur - (now - e.start);
+      if (rem <= 0 && !e.notified) { e.notified = true; newReady = true; }
+      const cw = document.getElementById('wc_' + wid); if (cw) cw.textContent = rem > 0 ? fmtTime(rem) : 'Kész!';
+      const wp = document.getElementById('wp_' + wid); if (wp) wp.style.width = Math.min(100, (now - e.start) / e.dur * 100) + '%';
+    }
+    if (newReady) {
+      saveMeta(); updateMapBadge();
+      if (el('map').style.display === 'block') renderMap();
+      else toast('🗺️ Egy expedíció visszatért — gyűjtsd be a 🗺️ térképen!', 3400);
+    }
+  }, 1000);
+
+  el('mapBtn').onclick = () => { renderMap(); el('map').style.display = 'block'; };
+  el('mapClose').onclick = () => { el('map').style.display = 'none'; };
+  el('heroesBtn').onclick = () => { renderHeroes(); el('heroes').style.display = 'block'; };
+  el('heroesClose').onclick = () => { el('heroes').style.display = 'none'; };
 
   el('introBtn').onclick = () => { el('intro').style.display = 'none'; meta.introSeen = true; saveMeta(); maybeStreakToast(); };
   el('back').onclick = () => { save(); saveMeta(); if (window.Android && window.Android.back) window.Android.back(); };
@@ -522,7 +784,7 @@
   addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
   setInterval(save, 5000);
 
-  updateTop(); renderInv();
+  updateTop(); renderInv(); updateMapBadge();
   // Intro only on the very first run; returning players land straight in the game.
   if (meta.introSeen) { el('intro').style.display = 'none'; maybeStreakToast(); }
   if (boot) boot.style.display = 'none';
