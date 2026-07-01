@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MicroMasters</string>
+
+    <!-- Title screen -->
+    <string name="title_play">PLAY</string>
+    <string name="title_login">Log in</string>
+    <string name="title_tagline">Merge. Discover. Rebuild civilization.</string>
+    <string name="title_footer">OFFLINE · AD-FREE</string>
+
+    <!-- Notifications (local, on-device daily reminder) -->
+    <string name="notif_channel_name">Reminders</string>
+    <string name="notif_channel_desc">Daily streak reminder to keep discovering.</string>
+    <string name="notif_streak_title">The discovery continues 🔥</string>
+    <string name="notif_streak_text">Don\'t break your streak — a new invention awaits you today!</string>
+
+    <!-- World select -->
+    <string name="worlds">Worlds</string>
+    <string name="friends">Friends</string>
+    <string name="settings">Settings</string>
+    <string name="select_world">Select a world</string>
+    <string name="locked">LOCKED</string>
+    <string name="enter">Enter</string>
+    <string name="unlock_for_gems">Unlock · %1$d 💎</string>
+    <string name="progress_fmt">%1$d/%2$d</string>
+
+    <!-- World names -->
+    <string name="world_kitchen">Kitchen</string>
+    <string name="world_bathroom">Bathroom</string>
+    <string name="world_garden">Garden</string>
+    <string name="world_spaceship">Spaceship</string>
+    <string name="world_workshop">Workshop</string>
+    <string name="world_fridge">Fridge</string>
+    <string name="world_toybox">Toy Box</string>
+
+    <!-- Game screen -->
+    <string name="collect">COLLECT</string>
+    <string name="tab_upgrade">Upgrade</string>
+    <string name="tab_units">Units</string>
+    <string name="tab_map">Map</string>
+    <string name="per_sec_fmt">%1$s/s</string>
+    <string name="storage_fmt">%1$s / %2$s</string>
+    <string name="welcome_back">Welcome back! You produced +%1$s coins while away.</string>
+    <string name="collected_fmt">+%1$s coins!</string>
+    <string name="storage_full">Storage is full — collect!</string>
+
+    <!-- Upgrades sheet -->
+    <string name="upgrades_title">Upgrades</string>
+    <string name="seg_units">Units</string>
+    <string name="seg_buildings">Buildings</string>
+    <string name="seg_boosts">Boosts</string>
+    <string name="level_fmt">Level %1$d</string>
+    <string name="hire">Hire</string>
+    <string name="not_enough">Not enough coins!</string>
+    <string name="not_enough_gems">Not enough gems!</string>
+    <!-- Bulk-buy / smart economy -->
+    <string name="qty_max">Max</string>
+    <string name="roi_payback_fmt">pays off in %1$s</string>
+    <string name="bought_fmt">+%1$d levels</string>
+
+    <!-- Unit names -->
+    <string name="unit_miner">Miner</string>
+    <string name="unit_carrier">Carrier</string>
+    <string name="unit_guard">Guard</string>
+    <string name="unit_scientist">Scientist</string>
+
+    <!-- Building names -->
+    <string name="bld_warehouse">Warehouse</string>
+    <string name="bld_warehouse_desc">Increases storage capacity</string>
+    <string name="bld_workshop">Workshop</string>
+    <string name="bld_workshop_desc">Increases production per level</string>
+    <string name="bld_lab">Lab</string>
+    <string name="bld_lab_desc">Produces gems per hour</string>
+
+    <!-- Boosts -->
+    <string name="boost_2x">2× Production</string>
+    <string name="boost_2x_desc">Doubles production for 15 minutes</string>
+    <string name="boost_fill">Instant storage</string>
+    <string name="boost_fill_desc">Instantly fills storage</string>
+    <string name="boost_ad">Ad bonus</string>
+    <string name="boost_ad_desc">Watch an ad for 5 minutes of production</string>
+    <string name="boost_active_fmt">Active: %1$s</string>
+    <string name="watch">Watch</string>
+
+    <!-- Map / territory -->
+    <string name="map_title">Map — %1$s</string>
+    <string name="conquer">Conquer</string>
+    <string name="territory_fmt">Territory %1$d</string>
+    <string name="all_conquered">All territories conquered! 🏆</string>
+    <string name="world_cleared_reward">World completed! +%1$d 💎</string>
+
+    <!-- Daily reward -->
+    <string name="daily_title">Daily Reward!</string>
+    <string name="daily_sub">Come back tomorrow too!</string>
+    <string name="daily_day_fmt">Day %1$d</string>
+    <string name="daily_claim">CLAIM</string>
+    <string name="daily_done">DONE</string>
+    <string name="daily_claimed">Another reward awaits tomorrow!</string>
+
+    <!-- Shop -->
+    <string name="shop_title">Shop</string>
+    <string name="shop_gems_small">Handful of gems</string>
+    <string name="shop_gems_big">Chest of gems</string>
+    <string name="shop_free_coins">Free coins (ad)</string>
+    <string name="shop_note">Purchases are simulated in this demo.</string>
+    <string name="get">Get</string>
+
+    <!-- Common -->
+    <string name="sound_toggle">🔊 Sound (music + effects)</string>
+    <string name="close">Close</string>
+
+    <!-- First-run onboarding -->
+    <string name="welcome_title">Welcome to MicroMasters! 🌍</string>
+    <string name="welcome_body">• Tap the COLLECT button (or the world) to earn coins.\n• Hire Units and build Buildings to boost production.\n• Conquer territories on the Map and complete the world.\n• Unlock new worlds, research, and re-miniaturize for endless progress!\n\nThe \"What should I do now?\" card always shows your next step. Have fun!</string>
+    <string name="welcome_ok">LET\'S GO!</string>
+    <string name="reset">Delete save</string>
+    <string name="reset_confirm">Are you sure you want to delete your save?</string>
+
+    <!-- Hardening / fidelity additions -->
+    <string name="storage_empty">Nothing to collect yet</string>
+    <string name="territory_hint">Every conquered territory speeds up production</string>
+    <string name="daily_streak_fmt">🔥 %1$d-day streak — don\'t lose it!</string>
+    <string name="leaderboard_title">🏆 Leaderboard</string>
+    <string name="you">YOU</string>
+    <string name="event_fmt">Weekend 2× event — %1$s left!</string>
+    <string name="share">Share</string>
+    <string name="share_text">🐜 I collected %1$s coins in MicroMasters! Play with me!</string>
+    <string name="shop_battlepass">Season Pass</string>
+    <string name="shop_battlepass_desc">Double daily reward during the season</string>
+    <string name="shop_vip">VIP Club</string>
+    <string name="shop_vip_desc">Production ×1.25 · +4 hours offline · 15 💎 daily</string>
+    <string name="shop_skin">Golden units</string>
+    <string name="shop_skin_desc">Shiny golden look for your units</string>
+    <!-- Monetization additions -->
+    <string name="shop_starter">Starter pack</string>
+    <string name="shop_starter_desc">100 💎 + big coin bonus + 2× boost — one-time</string>
+    <string name="shop_free_gems">Free gems (ad)</string>
+    <string name="shop_free_gems_desc">Watch an ad for 15 💎</string>
+    <string name="shop_gems_mega">Pile of gems</string>
+    <string name="shop_active">ACTIVE</string>
+    <string name="shop_section_offers">Offers</string>
+    <string name="shop_section_gems">Gems</string>
+    <string name="shop_section_premium">Premium</string>
+
+    <!-- Daily quests -->
+    <string name="quests_title">Daily quests</string>
+    <string name="quests_nav">Quests</string>
+    <string name="quest_collect">Collect 1000 coins</string>
+    <string name="quest_upgrade">Complete 3 upgrades</string>
+    <string name="quest_conquer">Conquer 1 territory</string>
+    <string name="quest_progress_fmt">%1$s / %2$s</string>
+
+    <!-- World Essence + Refinery -->
+    <string name="bld_refinery">Refinery</string>
+    <string name="bld_refinery_desc">Produces essence from the world</string>
+    <string name="essence_kitchen">Crumb</string>
+    <string name="essence_bathroom">Bubble</string>
+    <string name="essence_garden">Pollen</string>
+    <string name="essence_spaceship">Plasma</string>
+    <string name="essence_workshop">Part</string>
+    <string name="essence_fridge">Ice crystal</string>
+    <string name="essence_toybox">Glitter</string>
+    <string name="refine">Refine</string>
+    <string name="refine_fmt">Refine · %1$s</string>
+    <string name="not_enough_essence">Not enough essence!</string>
+
+    <!-- Offline summary -->
+    <string name="offline_title">Welcome back!</string>
+    <string name="offline_away_fmt">You were away for %1$s</string>
+    <string name="offline_double">×2 📺</string>
+    <string name="offline_ok">OK</string>
+
+    <!-- Research Tree -->
+    <string name="research_hub_fmt">🔬 Research · %1$s 💠</string>
+    <string name="research_title">🔬 Research</string>
+    <string name="research_cores_fmt">Cores: %1$s 💠</string>
+    <string name="res_industry">Industry</string>
+    <string name="res_industry_desc">Global production</string>
+    <string name="res_logistics">Logistics</string>
+    <string name="res_logistics_desc">Offline efficiency</string>
+    <string name="res_science">Science</string>
+    <string name="res_science_desc">Gem bonus</string>
+    <string name="res_expansion">Expansion</string>
+    <string name="res_expansion_desc">Cheaper conquering</string>
+    <string name="not_enough_cores">Not enough Cores!</string>
+
+    <!-- Prestige / Re-Miniaturize -->
+    <string name="prestige">⭐ Re-Miniaturize</string>
+    <string name="prestige_title">Re-Miniaturize</string>
+    <string name="prestige_fmt">⭐ %1$d · +%2$d</string>
+    <string name="prestige_locked">No stars to claim yet.</string>
+    <string name="prestige_confirm">Reset the %1$s world for %2$d ⭐ stars? Units, buildings and territories will be reset — this cannot be undone!</string>
+    <string name="prestige_after">Stars afterward: %1$d</string>
+    <string name="prestige_do">Do it</string>
+
+    <!-- Collection / Museum -->
+    <string name="collection_title">🏛️ Collection</string>
+    <string name="collection_owned">OWNED</string>
+    <string name="collection_locked">LOCKED</string>
+    <string name="collection_badges_fmt">World badges · %1$d/%2$d</string>
+    <string name="collection_mastered">Mastered! 🏆 10/10</string>
+    <string name="collection_skins_fmt">Unit skins · %1$d/%2$d</string>
+    <string name="collection_set_title">Set bonus</string>
+    <string name="collection_set_name">Grand Collector</string>
+    <string name="collection_set_desc">Every world mastered + golden look · permanent bonus</string>
+    <string name="collection_claim">CLAIM</string>
+    <string name="collection_claimed">Grand Collector! Permanent production bonus 🏆</string>
+
+    <!-- Hub locked-world guidance -->
+    <string name="locked_need_gems">Locked · %1$s 💎 more needed</string>
+    <string name="locked_affordable">Locked · you can afford it!</string>
+
+    <!-- Next-goal guidance card -->
+    <string name="goal_card_title">WHAT SHOULD I DO NOW?</string>
+    <string name="goal_go">Go</string>
+    <string name="goal_claim_title">A reward awaits!</string>
+    <string name="goal_claim_daily">Your daily reward is here — claim it!</string>
+    <string name="goal_claim_quest">Quest completed — claim the 💎!</string>
+    <string name="goal_claim_research">You have enough Cores for a research!</string>
+    <string name="goal_claim_collection">Set bonus ready to claim in the Collection!</string>
+    <string name="goal_collect_title">Storage is full!</string>
+    <string name="goal_collect_text">The %1$s storage is full — collect!</string>
+    <string name="goal_prestige_title">Time to re-miniaturize!</string>
+    <string name="goal_prestige_text">%1$s: +%2$d ⭐ awaits — permanent production bonus.</string>
+    <string name="goal_upgrade_title">Upgrade production</string>
+    <string name="goal_upgrade_text">%1$s %2$s · %3$s 💰</string>
+    <string name="goal_conquer_title">Conquer new territory</string>
+    <string name="goal_conquer_text">%1$d/%2$d territories · %3$s 💰</string>
+    <string name="goal_unlock_title">A new world awaits</string>
+    <string name="goal_unlock_ready">Unlock: %1$s · %2$d 💎</string>
+    <string name="goal_unlock_save">Collect %2$d 💎 to unlock %1$s</string>
+    <string name="goal_idle_title">Keep producing</string>
+    <string name="goal_idle_text">Collect coins in the %1$s world for the next step.</string>
+
+    <!-- Map hints -->
+    <string name="map_hint_conquer_ready">You have enough coins — conquer now!</string>
+    <string name="map_hint_prestige">The world is done! Re-miniaturize for +%1$d ⭐.</string>
+
+    <!-- Milestone toasts -->
+    <string name="milestone_first_clear">First world completed! 🏆 Move on to the next!</string>
+    <string name="milestone_first_prestige">Re-miniaturized! ⭐ The bonus stays forever.</string>
+    <string name="milestone_coins">Milestone: %1$s coins collected! 🎉</string>
+
+    <!-- Active play: combo / crit / golden -->
+    <string name="crit_pop">CRITICAL! ×2</string>
+    <string name="golden_pop">Golden node! Production bonus ⭐</string>
+    <string name="combo_hint">Collect fast for the combo bonus!</string>
+
+    <!-- Per-world signature twist labels -->
+    <string name="twist_kitchen">Fresh batch</string>
+    <string name="twist_bathroom">Rinse</string>
+    <string name="twist_garden">Bloom</string>
+    <string name="twist_spaceship">Jump</string>
+    <string name="twist_workshop">Conveyor</string>
+    <string name="twist_fridge">Deep freeze</string>
+    <string name="twist_toybox">Wind-up</string>
+</resources>

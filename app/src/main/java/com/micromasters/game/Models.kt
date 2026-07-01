@@ -1,0 +1,215 @@
+package com.micromasters.game
+
+/** Static content definitions for MicroMasters. */
+
+class UnitDef(
+    val id: String,
+    val nameRes: Int,
+    val emoji: String,
+    val baseProd: Double,   // coins/sec contributed per level
+    val baseCost: Double,   // cost of the first level (hire)
+    val growth: Double = 1.18,
+    val artRes: Int = 0     // character sprite (0 = use the emoji)
+)
+
+class BuildingDef(
+    val id: String,
+    val nameRes: Int,
+    val descRes: Int,
+    val emoji: String,
+    val baseCost: Double,
+    val growth: Double,
+    val artRes: Int = 0     // building sprite (0 = use the emoji)
+)
+
+enum class BoostKind { MULTIPLIER, FILL, AD }
+
+class BoostDef(
+    val id: String,
+    val nameRes: Int,
+    val descRes: Int,
+    val emoji: String,
+    val kind: BoostKind,
+    val gemCost: Int,          // 0 means free / ad
+    val durationMs: Long = 0,  // for MULTIPLIER / AD
+    val multiplier: Double = 1.0
+)
+
+/** Which already-saved WorldState field drives a world's signature twist. */
+enum class TwistKind { TERRITORIES, WAREHOUSE, REFINES, STARS, BUILDING_SYNERGY, LAB, UNITS_TOTAL, NONE }
+
+/** Per-world signature bonus. Data only — never persisted; defaults keep it additive. */
+class TwistDef(
+    val kind: TwistKind = TwistKind.NONE,
+    val coef: Double = 0.0,   // bonus added per driver unit (0.03 = +3%)
+    val cap: Double = 0.0,    // max bonus fraction (0.45 = +45% ceiling)
+    val nameRes: Int = 0,     // Hungarian flavor label
+    val emoji: String = ""    // Unicode <= 7
+)
+
+class WorldDef(
+    val id: String,
+    val nameRes: Int,
+    val emoji: String,
+    val prodMult: Double,
+    val baseCap: Double,
+    val territoryBaseCost: Double,
+    val unlockGems: Int,
+    val unlockedByDefault: Boolean,
+    val clearReward: Int,        // gems for conquering all territories
+    val skyTop: Int,
+    val skyBottom: Int,
+    val ground: Int,
+    val accent: Int,
+    val worker: String,
+    val nodes: Array<String>,
+    val essenceName: Int,
+    val essenceEmoji: String,
+    val twist: TwistDef = TwistDef()
+)
+
+class QuestDef(val nameRes: Int, val emoji: String, val target: Long, val rewardGems: Int)
+
+enum class ResearchBranch { INDUSTRY, LOGISTICS, SCIENCE, EXPANSION }
+
+class ResearchDef(
+    val branch: ResearchBranch,
+    val nameRes: Int,
+    val descRes: Int,
+    val emoji: String,
+    val branchMult: Double,
+    val maxLevel: Int = 25
+)
+
+object Defs {
+    const val TERRITORIES = 10
+
+    // NOTE: every emoji below is Unicode <= 7 (renders on Android 8.0+, no EmojiCompat needed).
+    val UNITS = listOf(
+        UnitDef("miner", R.string.unit_miner, "🐜", baseProd = 0.9, baseCost = 15.0, artRes = R.drawable.sprite_unit_miner),
+        UnitDef("carrier", R.string.unit_carrier, "📦", baseProd = 2.4, baseCost = 90.0, artRes = R.drawable.sprite_unit_carrier),
+        UnitDef("guard", R.string.unit_guard, "🛡️", baseProd = 9.0, baseCost = 1000.0, artRes = R.drawable.sprite_unit_guard),
+        UnitDef("scientist", R.string.unit_scientist, "🔬", baseProd = 32.0, baseCost = 7200.0, artRes = R.drawable.sprite_unit_scientist)
+    )
+
+    val BUILDINGS = listOf(
+        BuildingDef("warehouse", R.string.bld_warehouse, R.string.bld_warehouse_desc, "📦", 150.0, 1.45, artRes = R.drawable.sprite_bld_warehouse),
+        BuildingDef("workshop", R.string.bld_workshop, R.string.bld_workshop_desc, "🔧", 420.0, 1.55, artRes = R.drawable.sprite_bld_workshop),
+        BuildingDef("lab", R.string.bld_lab, R.string.bld_lab_desc, "💡", 2600.0, 1.7, artRes = R.drawable.sprite_bld_lab),
+        BuildingDef("refinery", R.string.bld_refinery, R.string.bld_refinery_desc, "⚗️", 800.0, 1.6, artRes = R.drawable.sprite_bld_refinery)
+    )
+
+    val BOOSTS = listOf(
+        BoostDef("x2", R.string.boost_2x, R.string.boost_2x_desc, "⚡️", BoostKind.MULTIPLIER, gemCost = 15, durationMs = 15 * 60_000L, multiplier = 2.0),
+        BoostDef("fill", R.string.boost_fill, R.string.boost_fill_desc, "💧", BoostKind.FILL, gemCost = 8),
+        BoostDef("ad", R.string.boost_ad, R.string.boost_ad_desc, "🎬", BoostKind.AD, gemCost = 0, durationMs = 5 * 60_000L, multiplier = 1.0)
+    )
+
+    // Account-wide Research Tree (GDD §6.3). Each level multiplies ALL worlds globally.
+    // Order MUST match ResearchBranch.ordinal. Emoji are Unicode <= 7.
+    val RESEARCH = listOf(
+        ResearchDef(ResearchBranch.INDUSTRY, R.string.res_industry, R.string.res_industry_desc, "🏭", branchMult = 0.15),
+        ResearchDef(ResearchBranch.LOGISTICS, R.string.res_logistics, R.string.res_logistics_desc, "🚚", branchMult = 0.05),
+        ResearchDef(ResearchBranch.SCIENCE, R.string.res_science, R.string.res_science_desc, "🔬", branchMult = 0.05),
+        ResearchDef(ResearchBranch.EXPANSION, R.string.res_expansion, R.string.res_expansion_desc, "🗺️", branchMult = 0.05)
+    )
+
+    /** Cores granted for clearing all 10 territories of a world (mastery faucet). */
+    fun coreReward(id: String): Int = 2 + worldIndex(id)
+
+    // Colors are plain ARGB ints so the canvas view can use them directly.
+    val WORLDS = listOf(
+        WorldDef(
+            "kitchen", R.string.world_kitchen, "🍳",
+            prodMult = 1.0, baseCap = 120.0, territoryBaseCost = 220.0,
+            unlockGems = 0, unlockedByDefault = true, clearReward = 80,
+            skyTop = 0xFFE7B57A.toInt(), skyBottom = 0xFF7A4A24.toInt(),
+            ground = 0xFF8A5A2E.toInt(), accent = 0xFFFFD27A.toInt(),
+            worker = "🐜", nodes = arrayOf("🍞", "🍅", "🥚", "🍶", "🍪"),
+            essenceName = R.string.essence_kitchen, essenceEmoji = "🌾",
+            twist = TwistDef(TwistKind.TERRITORIES, 0.04, 0.36, R.string.twist_kitchen, "🍳")
+        ),
+        WorldDef(
+            "bathroom", R.string.world_bathroom, "🛁",
+            prodMult = 6.0, baseCap = 1600.0, territoryBaseCost = 2400.0,
+            unlockGems = 0, unlockedByDefault = true, clearReward = 150,
+            skyTop = 0xFF7FD8E6.toInt(), skyBottom = 0xFF1E6E78.toInt(),
+            ground = 0xFF2C8A93.toInt(), accent = 0xFFBFF3FA.toInt(),
+            worker = "🐌", nodes = arrayOf("💧", "🛁", "🚿", "💧", "🔵"),
+            essenceName = R.string.essence_bathroom, essenceEmoji = "💧",
+            twist = TwistDef(TwistKind.WAREHOUSE, 0.03, 0.45, R.string.twist_bathroom, "💧")
+        ),
+        WorldDef(
+            "garden", R.string.world_garden, "🌷",
+            prodMult = 42.0, baseCap = 13000.0, territoryBaseCost = 9000.0,
+            unlockGems = 120, unlockedByDefault = false, clearReward = 300,
+            skyTop = 0xFF9FE07A.toInt(), skyBottom = 0xFF2E7A2E.toInt(),
+            ground = 0xFF3C8A3C.toInt(), accent = 0xFFE6FFC2.toInt(),
+            worker = "🐛", nodes = arrayOf("🌱", "🍄", "🌷", "🐞", "🍀"),
+            essenceName = R.string.essence_garden, essenceEmoji = "🌼",
+            twist = TwistDef(TwistKind.REFINES, 0.05, 0.50, R.string.twist_garden, "🌷")
+        ),
+        WorldDef(
+            "spaceship", R.string.world_spaceship, "🚀",
+            prodMult = 320.0, baseCap = 95000.0, territoryBaseCost = 150000.0,
+            unlockGems = 400, unlockedByDefault = false, clearReward = 800,
+            skyTop = 0xFF3A4E8C.toInt(), skyBottom = 0xFF0E1430.toInt(),
+            ground = 0xFF243056.toInt(), accent = 0xFF9FB8FF.toInt(),
+            worker = "👽", nodes = arrayOf("🔩", "🔋", "💾", "⚙️", "🛰️"),
+            essenceName = R.string.essence_spaceship, essenceEmoji = "⚛️",
+            twist = TwistDef(TwistKind.STARS, 0.06, 0.60, R.string.twist_spaceship, "⭐")
+        ),
+        WorldDef(
+            "workshop", R.string.world_workshop, "🔧",
+            prodMult = 1500.0, baseCap = 600000.0, territoryBaseCost = 900000.0,
+            unlockGems = 800, unlockedByDefault = false, clearReward = 1500,
+            skyTop = 0xFF8A8F99.toInt(), skyBottom = 0xFF34383F.toInt(),
+            ground = 0xFF55504A.toInt(), accent = 0xFFF2A33C.toInt(),
+            worker = "🐝", nodes = arrayOf("🔩", "🔧", "🔋", "⚙️", "📎"),
+            essenceName = R.string.essence_workshop, essenceEmoji = "🔩",
+            twist = TwistDef(TwistKind.BUILDING_SYNERGY, 0.05, 0.50, R.string.twist_workshop, "⚙️")
+        ),
+        WorldDef(
+            "fridge", R.string.world_fridge, "❄️",
+            prodMult = 7000.0, baseCap = 3000000.0, territoryBaseCost = 4500000.0,
+            unlockGems = 1200, unlockedByDefault = false, clearReward = 2500,
+            skyTop = 0xFFBFE8F5.toInt(), skyBottom = 0xFF235E78.toInt(),
+            ground = 0xFF3C7E96.toInt(), accent = 0xFFE8FAFF.toInt(),
+            worker = "🐧", nodes = arrayOf("❄️", "💧", "🔵", "💎", "🍦"),
+            essenceName = R.string.essence_fridge, essenceEmoji = "❄️",
+            twist = TwistDef(TwistKind.LAB, 0.04, 0.40, R.string.twist_fridge, "❄️")
+        ),
+        WorldDef(
+            "toybox", R.string.world_toybox, "🎲",
+            prodMult = 30000.0, baseCap = 12000000.0, territoryBaseCost = 20000000.0,
+            unlockGems = 1800, unlockedByDefault = false, clearReward = 4000,
+            skyTop = 0xFFFFD24D.toInt(), skyBottom = 0xFFC23A28.toInt(),
+            ground = 0xFF3A7BD5.toInt(), accent = 0xFFFFF0A0.toInt(),
+            worker = "🐢", nodes = arrayOf("🎲", "🎈", "🎯", "🎁", "🔔"),
+            essenceName = R.string.essence_toybox, essenceEmoji = "✨",
+            twist = TwistDef(TwistKind.UNITS_TOTAL, 0.01, 0.40, R.string.twist_toybox, "🎈")
+        )
+    )
+
+    fun world(id: String): WorldDef = WORLDS.first { it.id == id }
+    fun worldIndex(id: String): Int = WORLDS.indexOfFirst { it.id == id }
+
+    /** Daily reward table. type true = gems, false = coins. Mirrors the mockup. */
+    data class DailyReward(val amount: Long, val isGems: Boolean)
+
+    val DAILY = listOf(
+        DailyReward(500, false),
+        DailyReward(700, false),
+        DailyReward(1000, false),
+        DailyReward(1500, false),
+        DailyReward(2500, false),
+        DailyReward(200, true),
+        DailyReward(5000, true)
+    )
+
+    val QUESTS = listOf(
+        QuestDef(R.string.quest_collect, "💰", 1000, 10),
+        QuestDef(R.string.quest_upgrade, "⬆️", 3, 8),
+        QuestDef(R.string.quest_conquer, "🚩", 1, 12)
+    )
+}

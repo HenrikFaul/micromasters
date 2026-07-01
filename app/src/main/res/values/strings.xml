@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MicroMasters</string>
+
+    <!-- Title screen -->
+    <string name="title_play">JÁTSSZ</string>
+    <string name="title_login">Bejelentkezés</string>
+    <string name="title_tagline">Egyesíts. Fedezz fel. Építsd újra a civilizációt.</string>
+    <string name="title_footer">OFFLINE · REKLÁMMENTES</string>
+
+    <!-- Notifications (local, on-device daily reminder) -->
+    <string name="notif_channel_name">Emlékeztetők</string>
+    <string name="notif_channel_desc">Napi széria-emlékeztető a felfedezés folytatásához.</string>
+    <string name="notif_streak_title">A felfedezés folytatódik 🔥</string>
+    <string name="notif_streak_text">Ne szakítsd meg a szériádat — ma is vár egy új találmány!</string>
+
+    <!-- World select -->
+    <string name="worlds">Világok</string>
+    <string name="friends">Barátok</string>
+    <string name="settings">Beállítások</string>
+    <string name="select_world">Válassz világot</string>
+    <string name="locked">ZÁRVA</string>
+    <string name="enter">Belépés</string>
+    <string name="unlock_for_gems">Feloldás · %1$d 💎</string>
+    <string name="progress_fmt">%1$d/%2$d</string>
+
+    <!-- World names -->
+    <string name="world_kitchen">Konyha</string>
+    <string name="world_bathroom">Fürdőszoba</string>
+    <string name="world_garden">Kert</string>
+    <string name="world_spaceship">Űrhajó</string>
+    <string name="world_workshop">Műhely</string>
+    <string name="world_fridge">Hűtő</string>
+    <string name="world_toybox">Játékdoboz</string>
+
+    <!-- Game screen -->
+    <string name="collect">GYŰJTÉS</string>
+    <string name="tab_upgrade">Fejlesztés</string>
+    <string name="tab_units">Egységek</string>
+    <string name="tab_map">Térkép</string>
+    <string name="per_sec_fmt">%1$s/mp</string>
+    <string name="storage_fmt">%1$s / %2$s</string>
+    <string name="welcome_back">Üdv újra! Távollétedben +%1$s érmét termeltél.</string>
+    <string name="collected_fmt">+%1$s érme!</string>
+    <string name="storage_full">A raktár megtelt — gyűjts be!</string>
+
+    <!-- Upgrades sheet -->
+    <string name="upgrades_title">Fejlesztések</string>
+    <string name="seg_units">Egységek</string>
+    <string name="seg_buildings">Épületek</string>
+    <string name="seg_boosts">Boostok</string>
+    <string name="level_fmt">Szint %1$d</string>
+    <string name="hire">Felvétel</string>
+    <string name="not_enough">Nincs elég érme!</string>
+    <string name="not_enough_gems">Nincs elég gyémánt!</string>
+    <!-- Bulk-buy / smart economy -->
+    <string name="qty_max">Max</string>
+    <string name="roi_payback_fmt">megtérül %1$s</string>
+    <string name="bought_fmt">+%1$d szint</string>
+
+    <!-- Unit names -->
+    <string name="unit_miner">Bányász</string>
+    <string name="unit_carrier">Hordár</string>
+    <string name="unit_guard">Őr</string>
+    <string name="unit_scientist">Tudós</string>
+
+    <!-- Building names -->
+    <string name="bld_warehouse">Raktár</string>
+    <string name="bld_warehouse_desc">Növeli a raktárkapacitást</string>
+    <string name="bld_workshop">Műhely</string>
+    <string name="bld_workshop_desc">Növeli a termelést szintenként</string>
+    <string name="bld_lab">Labor</string>
+    <string name="bld_lab_desc">Gyémántot termel óránként</string>
+
+    <!-- Boosts -->
+    <string name="boost_2x">2× Termelés</string>
+    <string name="boost_2x_desc">Megduplázza a termelést 15 percre</string>
+    <string name="boost_fill">Azonnali raktár</string>
+    <string name="boost_fill_desc">Azonnal feltölti a raktárat</string>
+    <string name="boost_ad">Reklám bónusz</string>
+    <string name="boost_ad_desc">Nézz meg egy reklámot 5 perc termeléséért</string>
+    <string name="boost_active_fmt">Aktív: %1$s</string>
+    <string name="watch">Megnéz</string>
+
+    <!-- Map / territory -->
+    <string name="map_title">Térkép — %1$s</string>
+    <string name="conquer">Hódítás</string>
+    <string name="territory_fmt">%1$d. terület</string>
+    <string name="all_conquered">Minden terület meghódítva! 🏆</string>
+    <string name="world_cleared_reward">Világ teljesítve! +%1$d 💎</string>
+
+    <!-- Daily reward -->
+    <string name="daily_title">Napi Jutalom!</string>
+    <string name="daily_sub">Térj vissza holnap is!</string>
+    <string name="daily_day_fmt">%1$d. nap</string>
+    <string name="daily_claim">BEGYŰJT</string>
+    <string name="daily_done">KÉSZ</string>
+    <string name="daily_claimed">Holnap újabb jutalom vár!</string>
+
+    <!-- Shop -->
+    <string name="shop_title">Bolt</string>
+    <string name="shop_gems_small">Marék gyémánt</string>
+    <string name="shop_gems_big">Láda gyémánt</string>
+    <string name="shop_free_coins">Ingyen érme (reklám)</string>
+    <string name="shop_note">A vásárlások szimuláltak ebben a demóban.</string>
+    <string name="get">Kérem</string>
+
+    <!-- Common -->
+    <string name="sound_toggle">🔊 Hang (zene + effektek)</string>
+    <string name="close">Bezár</string>
+
+    <!-- First-run onboarding -->
+    <string name="welcome_title">Üdvözlünk a MicroMastersben! 🌍</string>
+    <string name="welcome_body">• Koppints a GYŰJTÉS gombra (vagy a világra) az érmékért.\n• Vegyél fel Egységeket és építs Épületeket a termeléshez.\n• A Térképen hódíts területeket, és teljesítsd a világot.\n• Oldj fel új világokat, kutass és újraminiatürizálj a végtelen fejlődésért!\n\nA „Mit tegyek most?” kártya mindig mutatja a következő lépést. Jó játékot!</string>
+    <string name="welcome_ok">KEZDJÜK!</string>
+    <string name="reset">Mentés törlése</string>
+    <string name="reset_confirm">Biztosan törlöd a mentést?</string>
+
+    <!-- Hardening / fidelity additions -->
+    <string name="storage_empty">Még nincs mit gyűjteni</string>
+    <string name="territory_hint">Minden meghódított terület gyorsítja a termelést</string>
+    <string name="daily_streak_fmt">🔥 %1$d napos sorozat — ne hagyd elveszni!</string>
+    <string name="leaderboard_title">🏆 Ranglista</string>
+    <string name="you">TE</string>
+    <string name="event_fmt">Hétvégi 2× esemény — még %1$s!</string>
+    <string name="share">Megosztás</string>
+    <string name="share_text">🐜 %1$s érmét gyűjtöttem a MicroMastersben! Játssz velem!</string>
+    <string name="shop_battlepass">Szezonbérlet</string>
+    <string name="shop_battlepass_desc">Dupla napi jutalom a szezonban</string>
+    <string name="shop_vip">VIP Klub</string>
+    <string name="shop_vip_desc">Termelés ×1.25 · +4 óra offline · napi 15 💎</string>
+    <string name="shop_skin">Arany egységek</string>
+    <string name="shop_skin_desc">Csillogó arany kinézet az egységeknek</string>
+    <!-- Monetization additions -->
+    <string name="shop_starter">Kezdő csomag</string>
+    <string name="shop_starter_desc">100 💎 + nagy érme-bónusz + 2× boost — egyszeri</string>
+    <string name="shop_free_gems">Ingyen gyémánt (reklám)</string>
+    <string name="shop_free_gems_desc">Nézz meg egy reklámot 15 💎-ért</string>
+    <string name="shop_gems_mega">Halom gyémánt</string>
+    <string name="shop_active">AKTÍV</string>
+    <string name="shop_section_offers">Ajánlatok</string>
+    <string name="shop_section_gems">Gyémántok</string>
+    <string name="shop_section_premium">Prémium</string>
+
+    <!-- Daily quests -->
+    <string name="quests_title">Napi feladatok</string>
+    <string name="quests_nav">Feladatok</string>
+    <string name="quest_collect">Gyűjts 1000 érmét</string>
+    <string name="quest_upgrade">Végezz 3 fejlesztést</string>
+    <string name="quest_conquer">Hódíts meg 1 területet</string>
+    <string name="quest_progress_fmt">%1$s / %2$s</string>
+
+    <!-- World Essence + Refinery -->
+    <string name="bld_refinery">Finomító</string>
+    <string name="bld_refinery_desc">Eszenciát termel a világból</string>
+    <string name="essence_kitchen">Morzsa</string>
+    <string name="essence_bathroom">Buborék</string>
+    <string name="essence_garden">Pollen</string>
+    <string name="essence_spaceship">Plazma</string>
+    <string name="essence_workshop">Alkatrész</string>
+    <string name="essence_fridge">Jégkristály</string>
+    <string name="essence_toybox">Csillám</string>
+    <string name="refine">Finomítás</string>
+    <string name="refine_fmt">Finomítás · %1$s</string>
+    <string name="not_enough_essence">Nincs elég eszencia!</string>
+
+    <!-- Offline summary -->
+    <string name="offline_title">Üdv újra!</string>
+    <string name="offline_away_fmt">%1$s voltál távol</string>
+    <string name="offline_double">×2 📺</string>
+    <string name="offline_ok">RENDBEN</string>
+
+    <!-- Research Tree -->
+    <string name="research_hub_fmt">🔬 Kutatás · %1$s 💠</string>
+    <string name="research_title">🔬 Kutatás</string>
+    <string name="research_cores_fmt">Mag: %1$s 💠</string>
+    <string name="res_industry">Ipar</string>
+    <string name="res_industry_desc">Globális termelés</string>
+    <string name="res_logistics">Logisztika</string>
+    <string name="res_logistics_desc">Offline hatékonyság</string>
+    <string name="res_science">Tudomány</string>
+    <string name="res_science_desc">Gyémánt bónusz</string>
+    <string name="res_expansion">Terjeszkedés</string>
+    <string name="res_expansion_desc">Olcsóbb hódítás</string>
+    <string name="not_enough_cores">Nincs elég Mag!</string>
+
+    <!-- Prestige / Re-Miniaturize -->
+    <string name="prestige">⭐ Újraminiatürizálás</string>
+    <string name="prestige_title">Újraminiatürizálás</string>
+    <string name="prestige_fmt">⭐ %1$d · +%2$d</string>
+    <string name="prestige_locked">Még nincs begyűjthető csillag.</string>
+    <string name="prestige_confirm">Visszaállítod a(z) %1$s világot %2$d ⭐ csillagért? Az egységek, épületek és területek lenullázódnak — ez nem vonható vissza!</string>
+    <string name="prestige_after">Csillagok ezután: %1$d</string>
+    <string name="prestige_do">Megteszem</string>
+
+    <!-- Collection / Museum -->
+    <string name="collection_title">🏛️ Gyűjtemény</string>
+    <string name="collection_owned">MEGVAN</string>
+    <string name="collection_locked">ZÁRVA</string>
+    <string name="collection_badges_fmt">Világ-kitűzők · %1$d/%2$d</string>
+    <string name="collection_mastered">Mesteri! 🏆 10/10</string>
+    <string name="collection_skins_fmt">Egység-kinézetek · %1$d/%2$d</string>
+    <string name="collection_set_title">Készlet-bónusz</string>
+    <string name="collection_set_name">Nagy Gyűjtő</string>
+    <string name="collection_set_desc">Minden világ mesteri + arany kinézet · örök bónusz</string>
+    <string name="collection_claim">BEGYŰJT</string>
+    <string name="collection_claimed">Nagy Gyűjtő! Örök termelésbónusz 🏆</string>
+
+    <!-- Hub locked-world guidance -->
+    <string name="locked_need_gems">Zárva · még %1$s 💎 kell</string>
+    <string name="locked_affordable">Zárva · megengedheted!</string>
+
+    <!-- Next-goal guidance card -->
+    <string name="goal_card_title">MIT TEGYEK MOST?</string>
+    <string name="goal_go">Mehet</string>
+    <string name="goal_claim_title">Jutalom vár!</string>
+    <string name="goal_claim_daily">Itt a napi jutalmad — vedd át!</string>
+    <string name="goal_claim_quest">Teljesített feladat — gyűjtsd be a 💎-ot!</string>
+    <string name="goal_claim_research">Van elég Magod egy kutatásra!</string>
+    <string name="goal_claim_collection">Készlet-bónusz átvehető a Gyűjteményben!</string>
+    <string name="goal_collect_title">Tele a raktár!</string>
+    <string name="goal_collect_text">A(z) %1$s raktára megtelt — gyűjts be!</string>
+    <string name="goal_prestige_title">Ideje újraminiatürizálni!</string>
+    <string name="goal_prestige_text">%1$s: +%2$d ⭐ vár — örök termelésbónusz.</string>
+    <string name="goal_upgrade_title">Fejleszd a termelést</string>
+    <string name="goal_upgrade_text">%1$s %2$s · %3$s 💰</string>
+    <string name="goal_conquer_title">Hódíts új területet</string>
+    <string name="goal_conquer_text">%1$d/%2$d terület · %3$s 💰</string>
+    <string name="goal_unlock_title">Új világ vár</string>
+    <string name="goal_unlock_ready">Oldd fel: %1$s · %2$d 💎</string>
+    <string name="goal_unlock_save">Gyűjts %2$d 💎-ot a(z) %1$s feloldásához</string>
+    <string name="goal_idle_title">Termelj tovább</string>
+    <string name="goal_idle_text">Gyűjts érmét a(z) %1$s világban a következő lépéshez.</string>
+
+    <!-- Map hints -->
+    <string name="map_hint_conquer_ready">Van elég érméd — hódíts most!</string>
+    <string name="map_hint_prestige">Kész a világ! Újraminiatürizálj +%1$d ⭐-ért.</string>
+
+    <!-- Milestone toasts -->
+    <string name="milestone_first_clear">Első világ teljesítve! 🏆 Folytasd a következővel!</string>
+    <string name="milestone_first_prestige">Újraminiatürizálva! ⭐ A bónusz örökre megmarad.</string>
+    <string name="milestone_coins">Mérföldkő: %1$s érme összegyűjtve! 🎉</string>
+
+    <!-- Active play: combo / crit / golden -->
+    <string name="crit_pop">KRITIKUS! ×2</string>
+    <string name="golden_pop">Arany csomópont! Termelési bónusz ⭐</string>
+    <string name="combo_hint">Gyűjts gyorsan a kombó bónuszért!</string>
+
+    <!-- Per-world signature twist labels -->
+    <string name="twist_kitchen">Friss adag</string>
+    <string name="twist_bathroom">Öblítés</string>
+    <string name="twist_garden">Virágzás</string>
+    <string name="twist_spaceship">Ugrás</string>
+    <string name="twist_workshop">Futószalag</string>
+    <string name="twist_fridge">Mélyfagyasztás</string>
+    <string name="twist_toybox">Felhúzós</string>
+</resources>

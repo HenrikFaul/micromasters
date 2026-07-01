@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dayCell"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_world_thumb"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingVertical="12dp">
+
+    <TextView
+        android:id="@+id/dayLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1. nap"
+        android:textColor="@color/text_dim"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/dayIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="💰"
+        android:textSize="22sp" />
+
+    <TextView
+        android:id="@+id/dayAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="500"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+</LinearLayout>

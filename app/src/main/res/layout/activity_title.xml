@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_title">
+
+    <ImageButton
+        android:id="@+id/titleSettings"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/settings"
+        android:src="@drawable/ic_settings" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="36dp">
+
+        <ImageView
+            android:id="@+id/planet"
+            android:layout_width="196dp"
+            android:layout_height="196dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/app_icon" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.10"
+            android:text="MICRO"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="48sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-12dp"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.04"
+            android:text="MASTERS"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="48sp" />
+
+        <View
+            android:layout_width="60dp"
+            android:layout_height="3dp"
+            android:layout_marginTop="16dp"
+            android:background="?attr/colorPrimary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:letterSpacing="0.03"
+            android:text="@string/title_tagline"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="15sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPlay"
+            android:layout_width="280dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="46dp"
+            android:fontFamily="sans-serif-black"
+            android:text="@string/title_play"
+            android:textColor="?attr/colorOnPrimary"
+            android:textSize="20sp"
+            app:backgroundTint="?attr/colorPrimary"
+            app:cornerRadius="30dp"
+            app:icon="@drawable/ic_play"
+            app:iconGravity="textStart"
+            app:iconTint="?attr/colorOnPrimary"
+            app:rippleColor="?attr/colorOnPrimary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogin"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="280dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/title_login" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="18dp"
+        android:alpha="0.7"
+        android:letterSpacing="0.08"
+        android:text="@string/title_footer"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="11sp" />
+
+</FrameLayout>
