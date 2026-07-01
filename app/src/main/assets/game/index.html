@@ -9,6 +9,8 @@
   html,body { width:100%; height:100%; overflow:hidden; background:#05070f; touch-action:none;
     font-family:-apple-system,Roboto,"Segoe UI",sans-serif; color:#eaf0ff; }
   #c { position:fixed; inset:0; display:block; }
+  #vignette { position:fixed; inset:0; z-index:5; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0) 42%, rgba(3,5,12,.28) 78%, rgba(2,3,9,.6) 100%); }
   .hud { position:fixed; z-index:10; }
   /* top bar */
   #top { top:0; left:0; right:0; display:flex; gap:7px; align-items:center; padding:10px 12px;
@@ -168,6 +170,7 @@
 </head>
 <body>
   <canvas id="c"></canvas>
+  <div id="vignette"></div>
 
   <div class="hud" id="top">
     <button class="pill" id="back">◀</button>

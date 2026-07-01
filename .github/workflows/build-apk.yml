@@ -51,20 +51,23 @@ jobs:
             echo "KEY_PASS=micromasters"
           } >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
-        run: ./gradlew --no-daemon --stacktrace assembleRelease
+      - name: Build signed release APK + AAB
+        run: ./gradlew --no-daemon --stacktrace assembleRelease bundleRelease
 
-      - name: Stage APK as MicroMasters.apk
+      - name: Stage artifacts
         run: |
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk out/MicroMasters.apk
+          cp app/build/outputs/bundle/release/app-release.aab out/MicroMasters.aab
           ls -la out
 
-      - name: Upload APK artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: MicroMasters-apk
-          path: out/MicroMasters.apk
+          name: MicroMasters-release
+          path: |
+            out/MicroMasters.apk
+            out/MicroMasters.aab
           if-no-files-found: error
 
       - name: Publish APK to a rolling release
@@ -73,7 +76,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete latest-build --yes --cleanup-tag || true
-          gh release create latest-build out/MicroMasters.apk \
+          gh release create latest-build out/MicroMasters.apk out/MicroMasters.aab \
             --title "MicroMasters — legfrissebb build" \
-            --notes "Aláírt, **nem debuggolható** release build a(z) ${{ github.sha }} commitból. Töltsd le a **MicroMasters.apk** fájlt, és telepítsd Android eszközre (engedélyezd az ismeretlen forrásokat). Frissítéskor előbb távolítsd el a korábbi verziót, mert minden build új aláírókulcsot kap." \
+            --notes "Aláírt, **nem debuggolható** release build a(z) ${{ github.sha }} commitból. **MicroMasters.apk** — telepítsd Android eszközre (engedélyezd az ismeretlen forrásokat). **MicroMasters.aab** — Play Console feltöltéshez (App Bundle). Frissítéskor előbb távolítsd el a korábbi verziót, mert minden build új aláírókulcsot kap." \
             --prerelease

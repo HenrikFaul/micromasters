@@ -109,55 +109,127 @@
     saveMeta();
   })();
 
-  // ---------- three.js ----------
+  // ---------- three.js (premium render setup) ----------
   let renderer, scene, camera, clock;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true });
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setClearColor(0x05070f, 1);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(innerWidth, innerHeight);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
   } catch (e) { fail('WebGL nem érhető el.'); return; }
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 100);
+  scene.fog = new THREE.FogExp2(0x05070f, 0.028);           // atmospheric depth
+  camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 120);
   camera.position.set(0, 0.4, 7.2);
   clock = new THREE.Clock();
-  scene.add(new THREE.HemisphereLight(0x9fb8ff, 0x202840, 1.0));
-  const key = new THREE.PointLight(0x9fd0ff, 1.4, 40); key.position.set(3, 4, 6); scene.add(key);
-  const warm = new THREE.PointLight(0xffd24d, 0.8, 40); warm.position.set(-4, -2, 4); scene.add(warm);
 
-  // starfield
-  (function () {
-    const g = new THREE.BufferGeometry(); const n = 420; const p = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) { const r = 18 + Math.random() * 24; const a = Math.random() * 6.28, b = Math.acos(2 * Math.random() - 1);
-      p[i*3] = r*Math.sin(b)*Math.cos(a); p[i*3+1] = r*Math.sin(b)*Math.sin(a); p[i*3+2] = r*Math.cos(b) - 10; }
-    g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xaaccff, size: 0.08, sizeAttenuation: true, transparent: true, opacity: 0.8 })));
+  // procedural HDRI-style environment (PBR reflections on metal/glass) — the premium lift
+  (function buildEnvironment() {
+    try {
+      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256;
+      const cx = cv.getContext('2d');
+      const g = cx.createLinearGradient(0, 0, 0, 256);
+      g.addColorStop(0, '#2a3d70'); g.addColorStop(0.45, '#111d3a'); g.addColorStop(1, '#05070f');
+      cx.fillStyle = g; cx.fillRect(0, 0, 512, 256);
+      const soft = (x, y, r, col) => { const rg = cx.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(0,0,0,0)'); cx.fillStyle = rg; cx.fillRect(0, 0, 512, 256); };
+      soft(150, 55, 150, 'rgba(150,195,255,0.95)');          // cool key
+      soft(390, 90, 120, 'rgba(255,200,130,0.55)');          // warm fill
+      soft(300, 210, 160, 'rgba(90,120,220,0.35)');          // bounce
+      const tex = new THREE.CanvasTexture(cv);
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromEquirectangular(tex).texture;
+      tex.dispose();
+    } catch (e) {}
   })();
+
+  scene.add(new THREE.HemisphereLight(0x9fb8ff, 0x141a30, 0.7));
+  const key = new THREE.PointLight(0xbfe0ff, 1.5, 60); key.position.set(3, 4, 6); scene.add(key);
+  const warm = new THREE.PointLight(0xffcf8a, 0.7, 60); warm.position.set(-4, -2, 4); scene.add(warm);
+  const rim = new THREE.PointLight(0x7ac0ff, 1.1, 40); rim.position.set(0, 2.5, -5); scene.add(rim);
+
+  // reusable soft radial glow sprite (fake bloom — cheap and mobile-friendly)
+  const GLOW_TEX = (function () {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const cx = cv.getContext('2d'); const g = cx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.28, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = g; cx.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(cv);
+  })();
+  function makeGlow(color, size) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW_TEX, color: color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.9 }));
+    sp.scale.setScalar(size || 1); return sp;
+  }
+
+  // reflective floor grounds the scene and catches the core's glow
+  (function floor() {
+    const m = new THREE.Mesh(
+      new THREE.CircleGeometry(11, 64),
+      new THREE.MeshPhysicalMaterial({ color: 0x0a1326, metalness: 0.95, roughness: 0.42, envMapIntensity: 1.1 })
+    );
+    m.rotation.x = -Math.PI / 2; m.position.y = -1.75; scene.add(m);
+    const pool = makeGlow(0x2b56b8, 6); pool.position.set(0, -1.72, 0); pool.material.rotation = 0; scene.add(pool);
+  })();
+
+  // layered additive starfield with twinkle
+  function starLayer(n, radius, size, color, opacity) {
+    const g = new THREE.BufferGeometry(); const p = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const r = radius + Math.random() * 20; const a = Math.random() * 6.28, b = Math.acos(2 * Math.random() - 1);
+      p[i*3] = r*Math.sin(b)*Math.cos(a); p[i*3+1] = r*Math.sin(b)*Math.sin(a); p[i*3+2] = r*Math.cos(b) - 12; }
+    g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: color, size: size, sizeAttenuation: true, transparent: true, opacity: opacity, blending: THREE.AdditiveBlending, depthWrite: false }));
+    scene.add(pts); return pts;
+  }
+  const starsFar = starLayer(360, 22, 0.06, 0x8fb4ff, 0.55);
+  const starsNear = starLayer(120, 15, 0.11, 0xffffff, 0.9);
 
   // Master Core: fractured glowing crystal that reassembles as you progress
   const core = new THREE.Group(); core.position.set(0, 1.35, 0); scene.add(core);
-  const coreMat = new THREE.MeshStandardMaterial({ color: 0x6f9bff, emissive: 0x2a4cff, emissiveIntensity: 0.4, roughness: 0.25, metalness: 0.5, flatShading: true });
+  const coreMat = new THREE.MeshPhysicalMaterial({ color: 0x3f5cff, emissive: 0x2140ff, emissiveIntensity: 0.5, roughness: 0.12, metalness: 0.9, clearcoat: 1.0, clearcoatRoughness: 0.16, envMapIntensity: 1.5, flatShading: true });
   const shards = [];
-  for (let i = 0; i < 10; i++) {
-    const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.34 + Math.random() * 0.2, 0), coreMat);
+  for (let i = 0; i < 11; i++) {
+    const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.22 + Math.random() * 0.16, 0), coreMat);
     const a = Math.random() * 6.28, b = Math.acos(2 * Math.random() - 1);
     s.userData.dir = new THREE.Vector3(Math.sin(b)*Math.cos(a), Math.sin(b)*Math.sin(a), Math.cos(b));
     s.userData.spin = new THREE.Vector3(Math.random(), Math.random(), Math.random());
     core.add(s); shards.push(s);
   }
+  // inner heart + halo (fake bloom around the core)
+  const coreHeart = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 1),
+    new THREE.MeshStandardMaterial({ color: 0xdcecff, emissive: 0x8fb4ff, emissiveIntensity: 1.4, roughness: 0.2, metalness: 0.3 }));
+  core.add(coreHeart);
+  const coreHalo = makeGlow(0x6f9bff, 2.4); core.add(coreHalo);
 
-  // two pedestals + a result anchor
+  // two pedestals of dark glass with glowing energy rings
   function pedestal(x) {
     const g = new THREE.Group(); g.position.set(x, -1.2, 0.4);
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 0.34, 8), new THREE.MeshStandardMaterial({ color: 0x26314e, roughness: 0.7, metalness: 0.3, flatShading: true }));
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.64, 0.34, 24),
+      new THREE.MeshPhysicalMaterial({ color: 0x1a2440, roughness: 0.25, metalness: 0.4, clearcoat: 0.8, envMapIntensity: 1.0 })
+    );
     g.add(base);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 8, 24), new THREE.MeshStandardMaterial({ color: 0x6f9bff, emissive: 0x3050ff, emissiveIntensity: 0.5 }));
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.42, 0.035, 12, 40),
+      new THREE.MeshStandardMaterial({ color: 0x9fd0ff, emissive: 0x4a78ff, emissiveIntensity: 1.2, roughness: 0.3, metalness: 0.6 })
+    );
     ring.rotation.x = Math.PI / 2; ring.position.y = 0.2; g.add(ring);
+    const glow = makeGlow(0x4a78ff, 1.4); glow.position.y = 0.24; g.add(glow); g.userData.glow = glow;
     scene.add(g); return g;
   }
   const padL = pedestal(-1.5), padR = pedestal(1.5);
+
+  // expanding shockwave rings on discovery
+  const rings = [];
+  function shockwave(pos, color) {
+    const m = new THREE.Mesh(
+      new THREE.RingGeometry(0.12, 0.2, 48),
+      new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    m.position.copy(pos); m.lookAt(camera.position); m.userData.life = 1;
+    scene.add(m); rings.push(m);
+  }
 
   // emoji -> sprite (cached textures)
   const texCache = {};
@@ -179,14 +251,16 @@
     return pad.userData.sp;
   }
 
-  // floating particles on merge
+  // floating particles on merge (additive glow sprites)
   const fx = [];
   function burst(pos, color, n) {
-    for (let i = 0; i < (n || 14); i++) {
-      const m = new THREE.Mesh(new THREE.TetrahedronGeometry(0.07, 0), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.8, flatShading: true }));
+    const cnt = n || 14;
+    for (let i = 0; i < cnt; i++) {
+      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW_TEX, color: color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const s0 = 0.16 + Math.random() * 0.24; m.scale.setScalar(s0);
       m.position.copy(pos);
-      const a = Math.random() * 6.28, b = Math.acos(2 * Math.random() - 1), sp = 1.5 + Math.random() * 3;
-      m.userData = { v: new THREE.Vector3(Math.sin(b)*Math.cos(a)*sp, Math.sin(b)*Math.sin(a)*sp, Math.cos(b)*sp), life: 0.9 };
+      const a = Math.random() * 6.28, b = Math.acos(2 * Math.random() - 1), sp = 1.6 + Math.random() * 3.4;
+      m.userData = { v: new THREE.Vector3(Math.sin(b)*Math.cos(a)*sp, Math.sin(b)*Math.sin(a)*sp, Math.cos(b)*sp), life: 0.9, s0: s0 };
       scene.add(m); fx.push(m);
     }
   }
@@ -293,6 +367,8 @@
     if (!disc.has(r)) {
       disc.add(r); save();
       meta.foundToday = (meta.foundToday || 0) + 1; saveMeta();
+      shockwave(core.position.clone(), 0xffe08a);
+      burst(core.position.clone(), 0x9fd0ff, 14);
       updateTop();
       showReveal(r, true);
     } else {
@@ -751,33 +827,63 @@
     const dt = Math.min(clock.getDelta(), 0.05); const t = clock.elapsedTime;
     const ratio = disc.size / TOTAL;
     core.rotation.y += dt * 0.5; core.rotation.x = Math.sin(t * 0.3) * 0.15;
-    const gather = 0.2 + (1 - ratio) * 1.1;             // shards pull in as you progress
+    const gather = 0.42 + (1 - ratio) * 0.62;           // shards pull in as you progress
     for (const s of shards) {
       s.position.copy(s.userData.dir).multiplyScalar(gather + Math.sin(t * 1.5) * 0.04);
       s.rotation.x += dt * s.userData.spin.x; s.rotation.y += dt * s.userData.spin.y;
     }
+    let emis;
     if (bossExplode > 0) {
       bossExplode = Math.max(0, bossExplode - dt * 1.5);
       core.scale.setScalar(Math.max(0.001, bossExplode));
-      coreMat.emissiveIntensity = 1.5;
+      emis = 1.5;
     } else if (bossMode) {
-      coreMat.emissiveIntensity = 1.2 + Math.sin(t * 6) * 0.2 + bossHit * 1.2;
+      emis = 1.2 + Math.sin(t * 6) * 0.2 + bossHit * 1.2;
       core.scale.setScalar(1.7 + Math.sin(t * 2.2) * 0.06 + bossHit * 0.25);
     } else {
-      coreMat.emissiveIntensity = 0.3 + ratio * 0.7 + coreFlash * 0.8;
+      emis = 0.35 + ratio * 0.7 + coreFlash * 0.9;
     }
+    coreMat.emissiveIntensity = emis;
+    // inner heart + halo (fake bloom) track the core's energy
+    coreHeart.scale.setScalar(0.9 + Math.sin(t * 3) * 0.06 + coreFlash * 0.4);
+    coreHalo.scale.setScalar((bossMode ? 4.0 : 3.0) + Math.sin(t * 2) * 0.25 + coreFlash * 1.6);
+    coreHalo.material.opacity = 0.4 + Math.min(0.5, emis * 0.25) + coreFlash * 0.4;
+    coreHalo.material.color.setHex(bossMode ? 0xff6a4a : 0x5f8bff);
     coreFlash = Math.max(0, coreFlash - dt * 2);
     bossHit = Math.max(0, bossHit - dt * 2.5);
+    // starfield twinkle + slow drift
+    starsNear.rotation.y += dt * 0.006; starsFar.rotation.y -= dt * 0.003;
+    starsNear.material.opacity = 0.7 + Math.sin(t * 1.4) * 0.2;
+    // camera: hit-shake, else a gentle idle parallax that keeps the scene alive
     if (shake > 0) {
       camera.position.x = Math.sin(t * 50) * shake * 0.16;
       camera.position.y = 0.4 + Math.cos(t * 47) * shake * 0.12;
       shake = Math.max(0, shake - dt * 1.6);
-    } else if (camera.position.x !== 0) { camera.position.x = 0; camera.position.y = 0.4; }
-    [padL, padR].forEach(p => { if (p.userData.sp) p.userData.sp.position.y = 0.8 + Math.sin(t * 2) * 0.05; });
-    for (let i = fx.length - 1; i >= 0; i--) { const m = fx[i]; m.userData.life -= dt;
-      m.userData.v.multiplyScalar(0.96); m.position.addScaledVector(m.userData.v, dt);
-      m.rotation.x += dt * 4; m.scale.setScalar(Math.max(0.01, m.userData.life));
-      if (m.userData.life <= 0) { scene.remove(m); fx.splice(i, 1); } }
+    } else {
+      camera.position.x = Math.sin(t * 0.35) * 0.18;
+      camera.position.y = 0.4 + Math.sin(t * 0.5) * 0.06;
+    }
+    camera.lookAt(0, 0.4, 0);
+    [padL, padR].forEach(p => {
+      if (p.userData.sp) p.userData.sp.position.y = 0.8 + Math.sin(t * 2) * 0.05;
+      if (p.userData.glow) p.userData.glow.material.opacity = 0.6 + Math.sin(t * 3 + p.position.x) * 0.25;
+    });
+    // expanding shockwave rings
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const m = rings[i]; m.userData.life -= dt * 1.3;
+      m.scale.setScalar(1 + (1 - m.userData.life) * 6);
+      m.material.opacity = Math.max(0, m.userData.life * 0.9);
+      if (m.userData.life <= 0) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); rings.splice(i, 1); }
+    }
+    // particles (additive glow sprites) with slight gravity
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const m = fx[i]; m.userData.life -= dt;
+      m.userData.v.multiplyScalar(0.95); m.userData.v.y -= dt * 0.6;
+      m.position.addScaledVector(m.userData.v, dt);
+      const k = Math.max(0, m.userData.life);
+      m.scale.setScalar(m.userData.s0 * (0.4 + k)); m.material.opacity = k;
+      if (m.userData.life <= 0) { scene.remove(m); m.material.dispose(); fx.splice(i, 1); }
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
